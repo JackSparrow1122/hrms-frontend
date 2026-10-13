@@ -190,8 +190,8 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-gray-900 selection:bg-gray-950 selection:text-white flex flex-col font-sans">
-      {/* Minimalist Crisp Header */}
-      <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b border-gray-200/80 transition-all">
+      {/* Minimalist Crisp Header with Seamless Blend */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100/60 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center group">
@@ -207,7 +207,7 @@ export function LandingPage() {
               Payroll Pipeline
             </a>
             <a
-              href="#cockpit"
+              href="#roles"
               className="hover:text-gray-950 transition-colors"
             >
               Role Personas
@@ -255,72 +255,67 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section: 3D HRMS & Payroll Scene with Rich Vibrant Depth */}
-      <section className="relative min-h-[580px] lg:min-h-[660px] pt-20 pb-20 sm:pt-28 sm:pb-28 bg-[#FAFAFA] overflow-hidden flex items-center">
-        {/* Full-Bleed 3D Scene */}
+      {/* Hero Section: Centered Editorial Headline with Flanking HRMS Enterprise 3D Cards */}
+      <section className="relative min-h-[580px] lg:min-h-[640px] pt-20 pb-20 sm:pt-24 sm:pb-24 bg-white overflow-hidden flex items-center justify-center">
+        {/* Full-Bleed Real HRMS Enterprise 3D Cards Background */}
         <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden">
           <img
-            src="/hero-3d-hrms.jpg"
-            alt="GA-HRMS 3D Workforce, Biometric Attendance & Payroll Engine"
-            className="w-full h-full object-cover object-[82%_center] lg:object-right"
+            src="/hero-hrms-enterprise-cards-wide.jpg"
+            alt="GA-HRMS Biometrics, Indian Statutory Compliance & Payroll Disbursal"
+            className="w-full h-full object-cover object-center"
             loading="eager"
           />
-          {/* Pure white background strictly behind the text column, leaving the 3D art 100% vibrant */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-transparent w-full lg:w-7/12" />
+          {/* Subtle soft radial wash strictly in the center ensuring 100% text contrast with zero card overlap */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.92)_30%,rgba(255,255,255,0.65)_50%,transparent_75%)]" />
 
-          {/* Minimal soft blend at the bottom edge so it connects seamlessly with Section 2 */}
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#FAFAFA] to-transparent" />
+          {/* Top seamless dissolve into header */}
+          <div className="absolute inset-x-0 top-0 h-24 sm:h-36 bg-gradient-to-b from-white via-white/80 to-transparent" />
+
+          {/* Bottom seamless dissolve into Section 2 (#FAFAFA) */}
+          <div className="absolute inset-x-0 bottom-0 h-32 sm:h-44 bg-gradient-to-t from-[#FAFAFA] via-[#FAFAFA]/90 to-transparent" />
         </div>
 
-        {/* Foreground Content */}
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left Column: Authoritative Editorial Copy & CTAs */}
-            <div className="lg:col-span-6 space-y-6 text-left py-2 sm:py-6">
-              {/* Clean, authoritative headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-gray-950 tracking-tight leading-[1.08] max-w-xl">
-                The modern HR &amp; payroll engine for Indian enterprises.
-              </h1>
+        {/* Centered Foreground Content Framed with Generous Breathing Room */}
+        <div className="relative z-20 max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-6">
+          {/* Centered, Authoritative Headline */}
+          <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-black text-gray-950 tracking-tight leading-[1.1] max-w-2xl mx-auto">
+            The modern HR &amp; payroll engine for Indian enterprises.
+          </h1>
 
-              {/* Clean Subtitle */}
-              <p className="text-base sm:text-lg text-gray-600 max-w-lg leading-relaxed font-normal">
-                A deterministic platform unifying biometric attendance normalization, multi-tier approvals, Indian statutory compliance (EPF, ESIC, PT, TDS), and 1-click bank disbursal.
-              </p>
+          {/* Clean Subtitle */}
+          <p className="text-base sm:text-lg text-gray-600 max-w-xl mx-auto leading-relaxed font-normal">
+            Automated biometric attendance, multi-tier approvals, Indian statutory compliance (EPF, ESIC, PT, TDS), and one-click salary disbursal.
+          </p>
 
-              {/* Primary Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => handleLaunchRole("HR_ADMIN")}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-semibold bg-gray-950 text-white hover:bg-black transition-all shadow-md active:scale-[0.98]"
-                  id="hero-btn-primary"
-                >
-                  <span>Launch Live Demo</span>
-                  <ArrowRight className="w-4 h-4 text-gray-400" />
-                </button>
-                <a
-                  href="#pipeline"
-                  className="inline-flex items-center justify-center px-6 py-3.5 rounded-full text-sm font-semibold border border-gray-300 bg-white/90 backdrop-blur-md text-gray-800 hover:border-gray-950 hover:text-gray-950 transition-all shadow-2xs"
-                >
-                  Explore Architecture ↓
-                </a>
-              </div>
+          {/* Primary Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => handleLaunchRole("HR_ADMIN")}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-semibold bg-gray-950 text-white hover:bg-black transition-all shadow-md active:scale-[0.98]"
+              id="hero-btn-primary"
+            >
+              <span>Launch Live Demo</span>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </button>
+            <a
+              href="#pipeline"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 rounded-full text-sm font-semibold border border-gray-300 bg-white/95 backdrop-blur-md text-gray-800 hover:border-gray-950 hover:text-gray-950 transition-all shadow-2xs"
+            >
+              Explore Architecture ↓
+            </a>
+          </div>
 
-              {/* Trust Indicators */}
-              <div className="pt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-gray-500 font-medium">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  100% In-Browser Sandbox
-                </span>
-                <span className="text-gray-300">•</span>
-                <span>Pre-Wired Indian Statutory Rules</span>
-                <span className="text-gray-300">•</span>
-                <span>Zero Signup Required</span>
-              </div>
-            </div>
-
-            {/* Right Column: Clean breathing space allowing 3D Artwork to shine unobstructed */}
-            <div className="lg:col-span-6 relative min-h-[300px] lg:min-h-[500px] pointer-events-none" />
+          {/* Trust Indicators */}
+          <div className="pt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-gray-500 font-medium">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              100% Indian Statutory Compliant
+            </span>
+            <span className="text-gray-300">•</span>
+            <span>Automated EPFO ECR Generation</span>
+            <span className="text-gray-300">•</span>
+            <span>Direct Bank Disbursal Ready</span>
           </div>
         </div>
       </section>
@@ -332,12 +327,8 @@ export function LandingPage() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="max-w-3xl space-y-3">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-gray-100 text-gray-900 text-xs font-medium border border-gray-200">
-              System Architecture
-            </div>
             <h2 className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight">
-              A deterministic 4-stage pipeline from biometric punch to statutory
-              payout.
+              From biometric punch to statutory salary disbursal in four stages.
             </h2>
             <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
               Most HR platforms treat attendance and payroll as separate
@@ -369,7 +360,7 @@ export function LandingPage() {
                 title: "Statutory Indian Deductions",
                 tag: "Automated Compliance",
                 icon: Scale,
-                desc: "Deterministic rules calculate EPF (with ₹15k cap), ESIC gross wage verification, State PT slabs, and Regime-based TDS.",
+                desc: "Automated calculations for EPF (₹15,000 cap), ESIC gross eligibility, State PT slabs, and regime-based TDS.",
                 bullet: "Zero-Excel formula errors",
               },
               {
@@ -419,20 +410,18 @@ export function LandingPage() {
 
       {/* Section 3: Built for Every Role */}
       <section
-        id="cockpit"
+        id="roles"
         className="py-16 sm:py-20 bg-white border-b border-gray-200/70"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2 max-w-2xl">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Built for everyone
-              </span>
               <h2 className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight">
                 Every team member gets a tailored view.
               </h2>
               <p className="text-sm text-gray-600">
-                Select a role to see how the system adapts to administrators, managers, and employees.
+                Select a role to see how the system adapts to administrators,
+                managers, and employees.
               </p>
             </div>
 
@@ -502,7 +491,7 @@ export function LandingPage() {
                       <ArrowRight className="w-4 h-4 text-gray-400" />
                     </button>
                     <span className="text-xs text-gray-500 font-medium">
-                      Instant 1-click sandbox access
+                      Instant 1-click access
                     </span>
                   </div>
                 </div>
@@ -562,9 +551,6 @@ export function LandingPage() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="max-w-3xl space-y-3">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Legal Rulebook
-            </span>
             <h2 className="text-3xl sm:text-4xl font-black text-gray-950 tracking-tight">
               Pre-wired for the complexities of Indian labor laws.
             </h2>
@@ -681,9 +667,6 @@ export function LandingPage() {
       <section id="faqs" className="py-16 bg-white border-b border-gray-200/70">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="text-center space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Clear Answers
-            </span>
             <h2 className="text-3xl font-black text-gray-950 tracking-tight">
               Frequently Asked Questions
             </h2>
@@ -743,10 +726,6 @@ export function LandingPage() {
       {/* Section 6: Launch CTA Banner with High-Contrast Minimalist Buttons */}
       <section className="py-14 px-4 sm:px-6 lg:px-8 bg-[#FAFAFA]">
         <div className="max-w-5xl mx-auto rounded-3xl bg-gray-950 p-8 sm:p-12 text-white text-center space-y-6 shadow-sm relative overflow-hidden border border-gray-800">
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-800 text-gray-300 border border-gray-700">
-            100% Client-Side Sandbox Ready
-          </span>
-
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight max-w-3xl mx-auto leading-tight text-white">
             Take full control of your workforce & payroll operations today.
           </h2>
@@ -781,9 +760,22 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Footer: Structured & Professional */}
-      <footer className="mt-auto border-t border-gray-200 bg-white py-10 text-xs text-gray-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      {/* Footer: Clean, Naturally Blended & Open Layout */}
+      <footer className="mt-auto border-t border-gray-200 bg-white pt-16 pb-8 text-xs text-gray-500 relative overflow-hidden">
+        {/* Subtle Decorative Skyline Trim: Anchored strictly at the very bottom */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-28 sm:h-36 pointer-events-none select-none z-0 overflow-hidden"
+          aria-hidden="true"
+        >
+          <img
+            src="/brand/hrms-footer-cityscape.jpg"
+            alt=""
+            className="w-full h-full object-cover object-[center_55%] opacity-60 [mask-image:linear-gradient(to_top,rgba(0,0,0,0.8)_20%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_top,rgba(0,0,0,0.8)_20%,transparent_100%)]"
+          />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 sm:space-y-16 relative z-10 w-full">
+          {/* Main Footer Links: Pure, Open & Crisp on Natural White Background (No Boxes) */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-2 space-y-3">
               <Link to="/" className="inline-flex items-center group">
@@ -799,24 +791,24 @@ export function LandingPage() {
               <p className="text-xs font-bold uppercase tracking-wider text-gray-900">
                 Platform Modules
               </p>
-              <ul className="space-y-1.5 text-gray-600">
+              <ul className="space-y-1.5 text-gray-600 font-medium">
                 <li>
-                  <Link to="/login" className="hover:text-gray-950">
+                  <Link to="/login" className="hover:text-blue-600 transition-colors">
                     Employee Directory (360°)
                   </Link>
                 </li>
                 <li>
-                  <Link to="/login" className="hover:text-gray-950">
+                  <Link to="/login" className="hover:text-blue-600 transition-colors">
                     Biometric Attendance & Shifts
                   </Link>
                 </li>
                 <li>
-                  <Link to="/login" className="hover:text-gray-950">
+                  <Link to="/login" className="hover:text-blue-600 transition-colors">
                     Multi-Tier Leave Hierarchy
                   </Link>
                 </li>
                 <li>
-                  <Link to="/login" className="hover:text-gray-950">
+                  <Link to="/login" className="hover:text-blue-600 transition-colors">
                     Indian Statutory Payroll (PF/ESIC)
                   </Link>
                 </li>
@@ -827,7 +819,7 @@ export function LandingPage() {
               <p className="text-xs font-bold uppercase tracking-wider text-gray-900">
                 Compliance & Security
               </p>
-              <ul className="space-y-1.5 text-gray-600">
+              <ul className="space-y-1.5 text-gray-600 font-medium">
                 <li className="flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-emerald-600" /> ISO 27001
                   Ready
@@ -844,13 +836,14 @@ export function LandingPage() {
             </div>
           </div>
 
+          {/* Clean Natural Copyright Line (No Boxes, Pure Seamless Layout) */}
           <div className="pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
-            <p>
+            <p className="text-gray-900 font-semibold">
               © {new Date().getFullYear()} GA Enterprise Workforce Solutions.
               All rights reserved.
             </p>
-            <p className="text-gray-400">
-              Built for Indian Enterprises • Deterministic Payroll Engine
+            <p className="text-gray-800 font-medium">
+              Built for Indian Enterprises • Enterprise HR &amp; Payroll Platform
             </p>
           </div>
         </div>

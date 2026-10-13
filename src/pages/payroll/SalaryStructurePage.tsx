@@ -25,46 +25,12 @@ export function SalaryStructurePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              Statutory Compliant: EPF Act, ESIC Act, State Tax Slabs
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-950 tracking-tight">
             Salary Structures & Statutory Slabs
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Component decomposition: Basic 50%, HRA 25%, Special Allowance 25%, EPF 12%, and State PT.
           </p>
-        </div>
-      </div>
-
-      {/* Statutory Rules Guidance Strip */}
-      <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/80 text-xs flex items-start gap-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-        <div className="w-8 h-8 rounded-lg bg-gray-200/70 flex items-center justify-center shrink-0 mt-0.5 text-gray-700">
-          <Info className="w-4 h-4" />
-        </div>
-        <div className="space-y-1.5 flex-1">
-          <p className="font-bold text-gray-950 text-xs">Standard Indian Statutory Compliance Rules Applied:</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1 text-[11px] text-gray-600">
-            <div className="p-2 bg-white rounded-lg border border-gray-200/60">
-              <span className="font-semibold text-gray-950 block">EPF (Provident Fund)</span>
-              12% on Basic Salary capped at ₹1,800 monthly ceiling.
-            </div>
-            <div className="p-2 bg-white rounded-lg border border-gray-200/60">
-              <span className="font-semibold text-gray-950 block">ESIC Contribution</span>
-              0.75% Employee contribution if Gross Salary ≤ ₹21,000/mo.
-            </div>
-            <div className="p-2 bg-white rounded-lg border border-gray-200/60">
-              <span className="font-semibold text-gray-950 block">Professional Tax (PT)</span>
-              Maharashtra State tax standard slab ₹200/month.
-            </div>
-            <div className="p-2 bg-white rounded-lg border border-gray-200/60">
-              <span className="font-semibold text-gray-950 block">TDS (Income Tax)</span>
-              Estimated dynamically on projected annual tax slabs.
-            </div>
-          </div>
         </div>
       </div>
 

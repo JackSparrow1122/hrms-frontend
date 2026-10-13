@@ -8,7 +8,6 @@ import {
   Coins,
   ShieldCheck,
   ArrowRight,
-  Sparkles,
   RotateCcw,
 } from "lucide-react";
 import { useHrms } from "../../lib/hrmsContext";
@@ -185,7 +184,7 @@ export function PayrollRunPage() {
                 variant="primary"
                 size="md"
                 isLoading={isProcessing}
-                leftIcon={<Sparkles className="w-4 h-4" />}
+                leftIcon={<CheckCircle2 className="w-4 h-4" />}
               >
                 Process & Lock Payroll ({selectedEmpIds.length})
               </Button>

@@ -6,7 +6,6 @@ import {
   Lock,
   Mail,
   ArrowRight,
-  Sparkles,
   Users,
   Building,
   User,
@@ -74,10 +73,6 @@ export function LoginPage() {
         {/* Center: Hero Heading & Feature Pillars */}
         <div className="relative z-10 my-12 space-y-8 max-w-lg">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-900 border border-gray-800 text-xs text-gray-300 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Next-Gen Indian Statutory & People OS</span>
-            </div>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight text-white">
               The modern standard for enterprise workforce & payroll.
             </h2>

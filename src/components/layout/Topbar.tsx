@@ -18,7 +18,6 @@ import { UserRole } from "../../types/hrms";
 import { useNavigate } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import { GaHrmsLogo } from "../ui/GaHrmsLogo";
-import { MoreAppsLauncher } from "./MoreAppsLauncher";
 
 export interface TopbarProps {
   onOpenMobileSidebar: () => void;
@@ -203,9 +202,6 @@ export function Topbar({ onOpenMobileSidebar, onOpenSearch }: TopbarProps) {
             </div>
           )}
         </div>
-
-        {/* More Apps Launcher (Square 9-dot Icon for Super Admin & HR Admin) */}
-        <MoreAppsLauncher />
 
         {/* Notifications Popover */}
         <div className="relative" ref={notifRef}>

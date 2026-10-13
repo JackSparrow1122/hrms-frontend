@@ -28,6 +28,13 @@ import { storage, STORAGE_KEYS } from "./storage";
 import { useAuth } from "./authContext";
 import { useToast } from "./toastContext";
 import { calculateSalaryComponents, recordAuditLog } from "./utils";
+import {
+  initialJobs,
+  initialCandidates,
+  initialAssets,
+  initialGoals,
+  initialAppraisals,
+} from "./seedData";
 
 interface HrmsContextType {
   // State
@@ -129,11 +136,45 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => storage.get(STORAGE_KEYS.AUDIT_LOGS, []));
   const [settings, setSettings] = useState<CompanySettings>(() => storage.get(STORAGE_KEYS.SETTINGS, {} as CompanySettings));
-  const [jobs, setJobs] = useState<JobPosting[]>(() => storage.get(STORAGE_KEYS.JOBS, []));
-  const [candidates, setCandidates] = useState<Candidate[]>(() => storage.get(STORAGE_KEYS.CANDIDATES, []));
-  const [assets, setAssets] = useState<CompanyAsset[]>(() => storage.get(STORAGE_KEYS.ASSETS, []));
-  const [performanceGoals, setPerformanceGoals] = useState<PerformanceGoal[]>(() => storage.get(STORAGE_KEYS.GOALS, []));
-  const [appraisalReviews, setAppraisalReviews] = useState<AppraisalReview[]>(() => storage.get(STORAGE_KEYS.APPRAISALS, []));
+  const [jobs, setJobs] = useState<JobPosting[]>(() => {
+    const data = storage.get<JobPosting[]>(STORAGE_KEYS.JOBS, []);
+    return data && data.length > 0 ? data : initialJobs;
+  });
+  const [candidates, setCandidates] = useState<Candidate[]>(() => {
+    const data = storage.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []);
+    return data && data.length > 0 ? data : initialCandidates;
+  });
+  const [assets, setAssets] = useState<CompanyAsset[]>(() => {
+    const data = storage.get<CompanyAsset[]>(STORAGE_KEYS.ASSETS, []);
+    return data && data.length > 0 ? data : initialAssets;
+  });
+  const [performanceGoals, setPerformanceGoals] = useState<PerformanceGoal[]>(() => {
+    const data = storage.get<PerformanceGoal[]>(STORAGE_KEYS.GOALS, []);
+    return data && data.length > 0 ? data : initialGoals;
+  });
+  const [appraisalReviews, setAppraisalReviews] = useState<AppraisalReview[]>(() => {
+    const data = storage.get<AppraisalReview[]>(STORAGE_KEYS.APPRAISALS, []);
+    return data && data.length > 0 ? data : initialAppraisals;
+  });
+
+  // Ensure seed data is synced into storage if initially empty
+  useEffect(() => {
+    if (jobs.length > 0 && storage.get<JobPosting[]>(STORAGE_KEYS.JOBS, []).length === 0) {
+      storage.set(STORAGE_KEYS.JOBS, jobs);
+    }
+    if (candidates.length > 0 && storage.get<Candidate[]>(STORAGE_KEYS.CANDIDATES, []).length === 0) {
+      storage.set(STORAGE_KEYS.CANDIDATES, candidates);
+    }
+    if (assets.length > 0 && storage.get<CompanyAsset[]>(STORAGE_KEYS.ASSETS, []).length === 0) {
+      storage.set(STORAGE_KEYS.ASSETS, assets);
+    }
+    if (performanceGoals.length > 0 && storage.get<PerformanceGoal[]>(STORAGE_KEYS.GOALS, []).length === 0) {
+      storage.set(STORAGE_KEYS.GOALS, performanceGoals);
+    }
+    if (appraisalReviews.length > 0 && storage.get<AppraisalReview[]>(STORAGE_KEYS.APPRAISALS, []).length === 0) {
+      storage.set(STORAGE_KEYS.APPRAISALS, appraisalReviews);
+    }
+  }, [jobs, candidates, assets, performanceGoals, appraisalReviews]);
 
   // Subscribe to storage changes
   useEffect(() => {

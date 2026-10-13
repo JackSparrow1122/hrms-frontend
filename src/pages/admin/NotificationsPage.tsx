@@ -22,16 +22,13 @@ export function NotificationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-950 tracking-tight flex items-center gap-3">
+            <span>Notifications Center</span>
             {unreadCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                {unreadCount} Unread Notifications
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                {unreadCount} unread
               </span>
             )}
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-950 tracking-tight">
-            Notifications Center
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             System announcements, approval requests, and statutory compliance reminders.

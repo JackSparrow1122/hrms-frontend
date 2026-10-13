@@ -5,7 +5,6 @@ import {
   Briefcase,
   Laptop,
   Target,
-  Sparkles,
   ArrowRight,
   Shield,
   Layers,
@@ -25,11 +24,6 @@ export function MoreAppsLauncher() {
 
   const isAuthorized = user?.role === "SUPER_ADMIN" || user?.role === "HR_ADMIN";
 
-  // If user is not Super Admin or HR Admin, don't show the launcher or show restricted view
-  if (!isAuthorized) {
-    return null;
-  }
-
   // Hover handlers with debounce
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -42,8 +36,9 @@ export function MoreAppsLauncher() {
     }, 220);
   };
 
-  // Close on outside click
+  // Close on outside click - Must be called before any early return to obey React Rules of Hooks
   useEffect(() => {
+    if (!isAuthorized) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -54,7 +49,12 @@ export function MoreAppsLauncher() {
       document.removeEventListener("mousedown", handleClickOutside);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, []);
+  }, [isAuthorized]);
+
+  // If user is not Super Admin or HR Admin, don't show the launcher
+  if (!isAuthorized) {
+    return null;
+  }
 
   const openJobsCount = jobs.filter((j) => j.status === "OPEN").length;
   const availableAssetsCount = assets.filter((a) => a.status === "AVAILABLE").length;
@@ -217,7 +217,7 @@ export function MoreAppsLauncher() {
           {/* Footer */}
           <div className="px-4 py-2.5 bg-white border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
             <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Layers className="w-3.5 h-3.5 text-gray-500" />
               <span>3 Enterprise apps available</span>
             </span>
             <span className="font-semibold text-gray-700">GA-HRMS Suite</span>

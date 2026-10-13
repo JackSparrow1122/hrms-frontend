@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 240" fill="none" preserveAspectRatio="xMidYMax slice" className="w-full h-full">
+  <defs>
+    <!-- Seamless vertical fade: solid at the ground, smoothly dissolving into the page at top -->
+    <linearGradient id="skylineGrad1" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#0f172a" stop-opacity="0.32" />
+      <stop offset="65%" stop-color="#1e293b" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#334155" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="skylineGrad2" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.22" />
+      <stop offset="70%" stop-color="#334155" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#64748b" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="skylineGradBack" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#334155" stop-opacity="0.12" />
+      <stop offset="85%" stop-color="#64748b" stop-opacity="0.02" />
+      <stop offset="100%" stop-color="#94a3b8" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Window lights glow -->
+    <linearGradient id="windowGlow" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- ================= LAYER 1: Deep Background Distant Towers ================= -->
+  <g fill="url(#skylineGradBack)">
+    <!-- Spire Needle Tower Left -->
+    <path d="M 60,240 L 60,60 L 65,30 L 66,10 L 67,30 L 72,60 L 72,240 Z" />
+    <rect x="35" y="80" width="62" height="160" />
+    <polygon points="45,80 66,45 87,80" />
+
+    <!-- Distant Stepped Tower -->
+    <rect x="180" y="70" width="85" height="170" />
+    <rect x="195" y="45" width="55" height="25" />
+    <rect x="210" y="25" width="25" height="20" />
+    <line x1="222" y1="25" x2="222" y2="5" stroke="#475569" stroke-width="1.5" stroke-opacity="0.25" />
+
+    <!-- Distant Modern Fin Tower -->
+    <polygon points="340,240 340,65 390,40 440,65 440,240" />
+
+    <!-- Center-Left Highrise -->
+    <rect x="520" y="55" width="75" height="185" />
+    <polygon points="520,55 557,25 595,55" />
+
+    <!-- Center Mega Tower Backdrop -->
+    <rect x="740" y="40" width="120" height="200" />
+    <polygon points="760,40 800,12 840,40" />
+    <line x1="800" y1="12" x2="800" y2="0" stroke="#475569" stroke-width="2" stroke-opacity="0.3" />
+
+    <!-- Center-Right Skyscraper -->
+    <rect x="960" y="60" width="90" height="180" />
+    <polygon points="960,60 1005,35 1050,60" />
+
+    <!-- Distant Slanted Roof Headquarter -->
+    <polygon points="1130,240 1130,55 1210,95 1210,240" />
+
+    <!-- Distant Twin Spire Tower Right -->
+    <rect x="1320" y="50" width="100" height="190" />
+    <line x1="1345" y1="50" x2="1345" y2="15" stroke="#475569" stroke-width="1.5" stroke-opacity="0.25" />
+    <line x1="1395" y1="50" x2="1395" y2="15" stroke="#475569" stroke-width="1.5" stroke-opacity="0.25" />
+
+    <!-- Far Right Highrise -->
+    <rect x="1480" y="75" width="80" height="165" />
+  </g>
+
+  <!-- ================= LAYER 2: Midground Corporate Headquarters ================= -->
+  <g fill="url(#skylineGrad2)">
+    <!-- Waterfront Trade Tower 1 -->
+    <rect x="0" y="110" width="55" height="130" />
+    <polygon points="0,110 27,90 55,110" />
+
+    <!-- Financial Tower Left -->
+    <polygon points="100,240 100,75 165,105 165,240" />
+
+    <!-- Modern Stepped Glass Tower -->
+    <rect x="250" y="90" width="70" height="150" />
+    <rect x="260" y="70" width="50" height="20" />
+    <rect x="272" y="55" width="26" height="15" />
+
+    <!-- Diamond Top Highrise -->
+    <rect x="420" y="85" width="80" height="155" />
+    <polygon points="420,85 460,55 500,85" />
+
+    <!-- Banking Center Tower -->
+    <polygon points="610,240 610,65 670,65 690,85 690,240" />
+    <line x1="640" y1="65" x2="640" y2="35" stroke="#334155" stroke-width="2" stroke-opacity="0.35" />
+
+    <!-- Corporate Atrium Center Left -->
+    <rect x="695" y="115" width="90" height="125" rx="3" />
+
+    <!-- Enterprise Monolith Center Right -->
+    <polygon points="855,240 855,75 920,45 945,75 945,240" />
+
+    <!-- Diagonal Cut Glass Headquarters -->
+    <polygon points="1040,240 1040,115 1120,65 1120,240" />
+
+    <!-- International Finance Center -->
+    <rect x="1200" y="80" width="95" height="160" />
+    <polygon points="1210,80 1247,50 1285,80" />
+
+    <!-- Tech Campus Glass Cube -->
+    <rect x="1410" y="95" width="75" height="145" />
+    <polygon points="1410,95 1447,75 1485,95" />
+
+    <!-- Edge Tower Right -->
+    <polygon points="1540,240 1540,105 1600,75 1600,240" />
+  </g>
+
+  <!-- ================= LAYER 3: Foreground Detailed Skyline & Windows ================= -->
+  <g fill="url(#skylineGrad1)">
+    <!-- Tower 1 Left -->
+    <rect x="15" y="130" width="75" height="110" />
+    <!-- Tower 2 Angled Spire -->
+    <polygon points="110,240 110,120 170,90 200,120 200,240" />
+    <!-- Tower 3 Corporate Tech Hub -->
+    <rect x="220" y="105" width="85" height="135" />
+    <!-- Tower 4 Modern Atrium -->
+    <polygon points="320,240 320,135 390,95 410,135 410,240" />
+    <!-- Tower 5 Executive Suite -->
+    <rect x="430" y="120" width="75" height="120" />
+    <polygon points="440,120 467,100 495,120" />
+
+    <!-- Tower 6 Prime Center-Left Skyscraper -->
+    <rect x="525" y="95" width="95" height="145" />
+    <line x1="572" y1="95" x2="572" y2="70" stroke="#1e293b" stroke-width="2.5" stroke-opacity="0.45" />
+
+    <!-- Tower 7 Financial Complex Center -->
+    <polygon points="640,240 640,110 720,75 750,110 750,240" />
+
+    <!-- Tower 8 Gateway Arch Corporate Center -->
+    <rect x="765" y="85" width="115" height="155" />
+    <polygon points="780,85 822,55 865,85" />
+    <line x1="822" y1="55" x2="822" y2="30" stroke="#0f172a" stroke-width="2.5" stroke-opacity="0.5" />
+
+    <!-- Tower 9 Innovation Center -->
+    <polygon points="900,240 900,125 975,85 995,125 995,240" />
+
+    <!-- Tower 10 Glass Tower -->
+    <rect x="1010" y="100" width="85" height="140" />
+    <polygon points="1010,100 1052,75 1095,100" />
+
+    <!-- Tower 11 Stepped Financial -->
+    <rect x="1115" y="115" width="90" height="125" />
+    <rect x="1130" y="95" width="60" height="20" />
+
+    <!-- Tower 12 Global Tower East -->
+    <polygon points="1225,240 1225,90 1295,125 1315,90 1315,240" />
+
+    <!-- Tower 13 Tech Park Tower -->
+    <rect x="1335" y="110" width="80" height="130" />
+    <polygon points="1345,110 1375,90 1405,110" />
+
+    <!-- Tower 14 Horizon Edge -->
+    <rect x="1435" y="125" width="85" height="115" />
+    <polygon points="1530,240 1530,115 1590,85 1600,115 1600,240" />
+  </g>
+
+  <!-- ================= SUBTLE CORPORATE WINDOW LIGHTS ACCENTS ================= -->
+  <g fill="#0284c7" opacity="0.18">
+    <!-- Center Tower Windows -->
+    <rect x="780" y="105" width="5" height="4" rx="1" />
+    <rect x="792" y="105" width="5" height="4" rx="1" />
+    <rect x="804" y="105" width="5" height="4" rx="1" />
+    <rect x="816" y="105" width="5" height="4" rx="1" />
+    <rect x="828" y="105" width="5" height="4" rx="1" />
+    <rect x="840" y="105" width="5" height="4" rx="1" />
+    <rect x="852" y="105" width="5" height="4" rx="1" />
+
+    <rect x="780" y="120" width="5" height="4" rx="1" />
+    <rect x="804" y="120" width="5" height="4" rx="1" />
+    <rect x="828" y="120" width="5" height="4" rx="1" />
+    <rect x="852" y="120" width="5" height="4" rx="1" />
+
+    <rect x="792" y="135" width="5" height="4" rx="1" />
+    <rect x="816" y="135" width="5" height="4" rx="1" />
+    <rect x="840" y="135" width="5" height="4" rx="1" />
+
+    <rect x="780" y="150" width="5" height="4" rx="1" />
+    <rect x="804" y="150" width="5" height="4" rx="1" />
+    <rect x="828" y="150" width="5" height="4" rx="1" />
+    <rect x="852" y="150" width="5" height="4" rx="1" />
+
+    <!-- Left Tower Windows -->
+    <rect x="235" y="120" width="4" height="4" rx="1" />
+    <rect x="247" y="120" width="4" height="4" rx="1" />
+    <rect x="259" y="120" width="4" height="4" rx="1" />
+    <rect x="271" y="120" width="4" height="4" rx="1" />
+    <rect x="283" y="120" width="4" height="4" rx="1" />
+
+    <rect x="235" y="135" width="4" height="4" rx="1" />
+    <rect x="259" y="135" width="4" height="4" rx="1" />
+    <rect x="283" y="135" width="4" height="4" rx="1" />
+
+    <!-- Right Tower Windows -->
+    <rect x="1025" y="115" width="5" height="4" rx="1" />
+    <rect x="1040" y="115" width="5" height="4" rx="1" />
+    <rect x="1055" y="115" width="5" height="4" rx="1" />
+    <rect x="1070" y="115" width="5" height="4" rx="1" />
+
+    <rect x="1025" y="130" width="5" height="4" rx="1" />
+    <rect x="1055" y="130" width="5" height="4" rx="1" />
+    <rect x="1070" y="130" width="5" height="4" rx="1" />
+
+    <rect x="1040" y="145" width="5" height="4" rx="1" />
+    <rect x="1055" y="145" width="5" height="4" rx="1" />
+  </g>
+
+  <!-- Tower Beacon Lights -->
+  <circle cx="822" cy="30" r="1.5" fill="#10b981" opacity="0.8" />
+  <circle cx="572" cy="70" r="1.2" fill="#0ea5e9" opacity="0.7" />
+  <circle cx="66" cy="10" r="1.2" fill="#ef4444" opacity="0.6" />
+  <circle cx="800" cy="0" r="1.5" fill="#10b981" opacity="0.8" />
+  <circle cx="1345" cy="15" r="1.2" fill="#0ea5e9" opacity="0.6" />
+</svg>

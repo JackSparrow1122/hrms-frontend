@@ -122,12 +122,6 @@ export function ReportsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              Real-Time Audit & Statutory Ready
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-950 tracking-tight">
             Enterprise Reporting Center
           </h1>

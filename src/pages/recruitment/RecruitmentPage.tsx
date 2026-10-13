@@ -138,10 +138,6 @@ export function RecruitmentPage() {
       <PageHeader
         title="Recruitment & ATS"
         subtitle="Manage end-to-end talent acquisition pipelines, job openings, and candidate evaluations."
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Recruitment & ATS" },
-        ]}
         actions={
           <div className="flex items-center gap-2.5">
             <Button

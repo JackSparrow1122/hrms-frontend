@@ -11,7 +11,6 @@ import {
   User,
   Building2,
   Calendar,
-  Sparkles,
   BarChart2,
   Filter,
   MessageSquare,
@@ -124,10 +123,6 @@ export function PerformancePage() {
       <PageHeader
         title="Performance & OKRs"
         subtitle="Align organizational priorities, track key results, and conduct 360 appraisal evaluations."
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Performance & OKRs" },
-        ]}
         actions={
           <div className="flex items-center gap-2.5">
             <Button

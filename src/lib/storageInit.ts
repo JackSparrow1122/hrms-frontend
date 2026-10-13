@@ -68,11 +68,17 @@ export function initializeHrmsStorage(forceReset = false) {
     storage.set(STORAGE_KEYS.INITIALIZED, true);
     console.log("✅ GA-HRMS LocalStorage successfully initialized with enterprise demo dataset.");
   } else {
-    // Migration guard: ensure new modules exist if user already had previous storage
-    if (!storage.get(STORAGE_KEYS.JOBS, null)) storage.set(STORAGE_KEYS.JOBS, initialJobs);
-    if (!storage.get(STORAGE_KEYS.CANDIDATES, null)) storage.set(STORAGE_KEYS.CANDIDATES, initialCandidates);
-    if (!storage.get(STORAGE_KEYS.ASSETS, null)) storage.set(STORAGE_KEYS.ASSETS, initialAssets);
-    if (!storage.get(STORAGE_KEYS.GOALS, null)) storage.set(STORAGE_KEYS.GOALS, initialGoals);
-    if (!storage.get(STORAGE_KEYS.APPRAISALS, null)) storage.set(STORAGE_KEYS.APPRAISALS, initialAppraisals);
+    // Migration guard: ensure new modules exist and have demo data if empty or missing
+    const checkAndSeed = (key: string, seed: any[]) => {
+      const existing = storage.get<any[]>(key, []);
+      if (!Array.isArray(existing) || existing.length === 0) {
+        storage.set(key, seed);
+      }
+    };
+    checkAndSeed(STORAGE_KEYS.JOBS, initialJobs);
+    checkAndSeed(STORAGE_KEYS.CANDIDATES, initialCandidates);
+    checkAndSeed(STORAGE_KEYS.ASSETS, initialAssets);
+    checkAndSeed(STORAGE_KEYS.GOALS, initialGoals);
+    checkAndSeed(STORAGE_KEYS.APPRAISALS, initialAppraisals);
   }
 }

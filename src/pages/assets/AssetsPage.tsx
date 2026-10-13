@@ -136,10 +136,6 @@ export function AssetsPage() {
       <PageHeader
         title="Asset & IT Management"
         subtitle="Track company hardware inventory, device assignments, procurement value, and warranties."
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Asset & IT Management" },
-        ]}
         actions={
           <div className="flex items-center gap-2.5">
             <Button

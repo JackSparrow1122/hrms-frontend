@@ -48,12 +48,6 @@ export function LeavePoliciesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              Statutory Compliant: Factories & Commercial Establishments Act
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-950 tracking-tight">
             Leave Policies & Accrual Rules
           </h1>
@@ -154,45 +148,6 @@ export function LeavePoliciesPage() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Statutory Rules Guidance Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-        <div className="p-4 rounded-xl border border-gray-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-700">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <h2 className="text-xs font-bold text-gray-950">Accrual Timing</h2>
-          </div>
-          <p className="text-[11px] text-gray-500 leading-relaxed">
-            Statutory leave quotas accrue on the 1st of every calendar month. Joining in the first fortnight yields full monthly accrual credit; subsequent joining is pro-rated.
-          </p>
-        </div>
-
-        <div className="p-4 rounded-xl border border-gray-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-700">
-              <Layers className="w-4 h-4" />
-            </div>
-            <h2 className="text-xs font-bold text-gray-950">Carry Forward & Lapsing</h2>
-          </div>
-          <p className="text-[11px] text-gray-500 leading-relaxed">
-            Casual Leave expires at the end of each fiscal calendar on March 31st. Privilege / Earned Leaves are carried forward up to the designated statutory maximum cap.
-          </p>
-        </div>
-
-        <div className="p-4 rounded-xl border border-gray-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-700">
-              <FileCheck2 className="w-4 h-4" />
-            </div>
-            <h2 className="text-xs font-bold text-gray-950">Encashment Rules</h2>
-          </div>
-          <p className="text-[11px] text-gray-500 leading-relaxed">
-            Earned leaves exceeding minimum balance are eligible for encashment either annually or upon full-and-final separation, calculated strictly on Basic component.
-          </p>
-        </div>
       </div>
 
       {/* Edit Policy Modal */}
