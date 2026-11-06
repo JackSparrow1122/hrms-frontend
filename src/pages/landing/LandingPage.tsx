@@ -16,14 +16,14 @@ import {
   ArrowUpRight,
   Check,
 } from "lucide-react";
-import { useAuth, DEMO_USERS } from "../../lib/authContext";
+import { useAuth } from "../../lib/authContext";
 import { UserRole } from "../../types/hrms";
 import { formatINR } from "../../lib/utils";
 import { GaHrmsLogo } from "../../components/ui/GaHrmsLogo";
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, user, login } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   // Active Persona State
   const [activePersona, setActivePersona] = useState<UserRole>("HR_ADMIN");
@@ -32,9 +32,7 @@ export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const handleLaunchRole = (role: UserRole) => {
-    const demo = DEMO_USERS[role];
-    login(demo.email, role);
-    navigate("/dashboard");
+    navigate(`/login?role=${role}`);
   };
 
   const personas = [

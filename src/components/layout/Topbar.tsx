@@ -11,6 +11,8 @@ import {
   ExternalLink,
   ChevronDown,
   Monitor,
+  Building2,
+  Building,
 } from "lucide-react";
 import { useAuth } from "../../lib/authContext";
 import { useHrms } from "../../lib/hrmsContext";
@@ -27,6 +29,10 @@ export interface TopbarProps {
 export function Topbar({ onOpenMobileSidebar, onOpenSearch }: TopbarProps) {
   const { user, logout, switchRole } = useAuth();
   const {
+    company,
+    activeCompanyId,
+    allCompanies,
+    switchActiveCompany,
     notifications,
     markNotificationRead,
     markAllNotificationsRead,
@@ -41,10 +47,12 @@ export function Topbar({ onOpenMobileSidebar, onOpenSearch }: TopbarProps) {
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [showOrgMenu, setShowOrgMenu] = useState(false);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const roleRef = useRef<HTMLDivElement>(null);
+  const orgRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
   useEffect(() => {
@@ -57,6 +65,9 @@ export function Topbar({ onOpenMobileSidebar, onOpenSearch }: TopbarProps) {
       }
       if (roleRef.current && !roleRef.current.contains(event.target as Node)) {
         setShowRoleMenu(false);
+      }
+      if (orgRef.current && !orgRef.current.contains(event.target as Node)) {
+        setShowOrgMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -82,9 +93,10 @@ export function Topbar({ onOpenMobileSidebar, onOpenSearch }: TopbarProps) {
   };
 
   const rolesList: { role: UserRole; label: string; desc: string }[] = [
-    { role: "SUPER_ADMIN", label: "Super Admin", desc: "Full platform & organization access" },
-    { role: "HR_ADMIN", label: "HR Admin", desc: "People, payroll, leave & policy control" },
-    { role: "MANAGER", label: "Manager", desc: "Team attendance, leaves & regularizations" },
+    { role: "SUPER_ADMIN", label: "Super Admin", desc: "Full platform & cross-tenant governance" },
+    { role: "TENANT_ADMIN", label: "Head HR (Tenant Admin)", desc: "Organization-wide & multi-branch oversight" },
+    { role: "HR_ADMIN", label: "HR Admin", desc: "Daily operations, attendance & approvals" },
+    { role: "MANAGER", label: "Manager / Team Lead", desc: "My Team attendance & leave approvals" },
     { role: "EMPLOYEE", label: "Employee (ESS)", desc: "Self-service portal, leaves, payslips" },
   ];
 
@@ -158,11 +170,85 @@ export function Topbar({ onOpenMobileSidebar, onOpenSearch }: TopbarProps) {
           <span>{settings?.compactMode ? "Compact" : "Comfortable"}</span>
         </button>
 
-        {/* Fast Role Switcher */}
+        {/* Super Admin: Organization Switcher Dropdown */}
+        {user?.role === "SUPER_ADMIN" ? (
+          <div className="relative" ref={orgRef}>
+            <button
+              onClick={() => setShowOrgMenu(!showOrgMenu)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-900 border border-indigo-200/80 hover:bg-indigo-100/80 transition-all shadow-xs"
+              title="Switch Active Customer Organization"
+            >
+              <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span className="max-w-[140px] truncate">
+                {company?.name || `Organization #${activeCompanyId}`}
+              </span>
+              <ChevronDown className="w-3 h-3 text-indigo-500" />
+            </button>
+
+            {showOrgMenu && (
+              <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                    Switch Organization
+                  </span>
+                  <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                    Super Admin
+                  </span>
+                </div>
+                <div className="max-h-60 overflow-y-auto py-1">
+                  {allCompanies.map((c) => {
+                    const isActive = c.id === activeCompanyId;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={async () => {
+                          await switchActiveCompany(c.id);
+                          setShowOrgMenu(false);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                          isActive ? "bg-indigo-50/60 font-semibold text-indigo-900" : "text-gray-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Building className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-indigo-600" : "text-gray-400"}`} />
+                          <div className="truncate">
+                            <div className="truncate">{c.legalName}</div>
+                            <div className="text-[10px] text-gray-400 font-mono">{c.tradeName || `ID: ${c.id}`}</div>
+                          </div>
+                        </div>
+                        {isActive && <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="border-t border-gray-100 pt-1.5 px-2">
+                  <button
+                    onClick={() => {
+                      setShowOrgMenu(false);
+                      navigate("/admin/organizations");
+                    }}
+                    className="w-full text-center py-1.5 text-xs text-indigo-600 hover:text-indigo-700 font-semibold hover:bg-indigo-50 rounded-lg transition-colors flex items-center justify-center gap-1"
+                  >
+                    Manage Organizations →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Non Super Admin: Fixed Organization Scope Badge */
+          <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 text-gray-800 border border-gray-200">
+            <Building2 className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+            <span className="max-w-[130px] truncate">{company?.name || user?.department || "Organization"}</span>
+          </div>
+        )}
+
+        {/* Interactive Role Switcher Dropdown */}
         <div className="relative" ref={roleRef}>
           <button
             onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-200 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-900 border border-gray-200 hover:bg-gray-200/80 transition-all cursor-pointer shadow-xs"
+            title="Switch Simulated Role"
           >
             <Shield className="w-3.5 h-3.5 text-gray-700" />
             <span>Role: {user?.role.replace("_", " ")}</span>
@@ -170,34 +256,35 @@ export function Topbar({ onOpenMobileSidebar, onOpenSearch }: TopbarProps) {
           </button>
 
           {showRoleMenu && (
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-elevated border border-gray-200 p-2 z-50 animate-scale-in">
-              <p className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                Switch Interactive Role
-              </p>
-              <div className="space-y-1">
-                {rolesList.map((r) => (
-                  <button
-                    key={r.role}
-                    onClick={() => {
-                      switchRole(r.role);
-                      setShowRoleMenu(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
-                      user?.role === r.role
-                        ? "bg-gray-950 text-white font-semibold"
-                        : "hover:bg-gray-100 text-gray-900"
-                    }`}
-                  >
-                    <div className="font-semibold">{r.label}</div>
-                    <div
-                      className={`text-[10px] mt-0.5 ${
-                        user?.role === r.role ? "text-gray-300" : "text-gray-500"
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="px-3 py-1.5 border-b border-gray-100 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  Switch User Role
+                </span>
+                <span className="text-[10px] font-medium text-gray-400">Simulation</span>
+              </div>
+              <div className="py-1">
+                {rolesList.map((r) => {
+                  const isActive = user?.role === r.role;
+                  return (
+                    <button
+                      key={r.role}
+                      onClick={() => {
+                        switchRole(r.role);
+                        setShowRoleMenu(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                        isActive ? "bg-indigo-50/70 font-semibold text-indigo-900" : "text-gray-700"
                       }`}
                     >
-                      {r.desc}
-                    </div>
-                  </button>
-                ))}
+                      <div>
+                        <div className="font-medium">{r.label}</div>
+                        <div className="text-[10px] text-gray-400 leading-tight">{r.desc}</div>
+                      </div>
+                      {isActive && <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

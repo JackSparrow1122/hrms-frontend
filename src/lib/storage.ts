@@ -42,8 +42,7 @@ function get<T>(key: string, defaultValue: T): T {
     const item = localStorage.getItem(key);
     if (item === null) return defaultValue;
     return JSON.parse(item) as T;
-  } catch (error) {
-    console.warn(`[storage.get] Error reading key "${key}":`, error);
+  } catch {
     return defaultValue;
   }
 }
@@ -57,8 +56,8 @@ function set<T>(key: string, value: T): void {
         detail: { key, value },
       })
     );
-  } catch (error) {
-    console.error(`[storage.set] Error writing key "${key}":`, error);
+  } catch {
+    // ignore
   }
 }
 
@@ -77,8 +76,8 @@ function remove(key: string): void {
         detail: { key, value: null },
       })
     );
-  } catch (error) {
-    console.error(`[storage.remove] Error removing key "${key}":`, error);
+  } catch {
+    // ignore
   }
 }
 
@@ -90,8 +89,8 @@ function clear(): void {
         detail: { key: '*', value: null },
       })
     );
-  } catch (error) {
-    console.error('[storage.clear] Error clearing localStorage:', error);
+  } catch {
+    // ignore
   }
 }
 

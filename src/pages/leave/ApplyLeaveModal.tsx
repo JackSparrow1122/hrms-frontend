@@ -6,26 +6,79 @@ import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { useHrms } from "../../lib/hrmsContext";
 import { useAuth } from "../../lib/authContext";
+import { useToast } from "../../lib/toastContext";
+import { leaveApi } from "../../lib/api";
 
 export interface ApplyLeaveModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onLeaveApplied?: () => void;
 }
 
-export function ApplyLeaveModal({ isOpen, onClose }: ApplyLeaveModalProps) {
+export function ApplyLeaveModal({ isOpen, onClose, onLeaveApplied }: ApplyLeaveModalProps) {
   const { leaveTypes, employees, applyLeave, leaveRequests } = useHrms();
   const { user } = useAuth();
+  const toast = useToast();
 
-  const [employeeId, setEmployeeId] = useState(user?.employeeId || employees[0]?.id || "EMP-1001");
+  const currentEmp = employees.find(
+    (e) =>
+      e.id === user?.employeeId ||
+      (user?.employeeCode && e.employeeCode?.toUpperCase() === user.employeeCode.toUpperCase()) ||
+      (user?.email && e.email.toLowerCase() === user.email.toLowerCase())
+  );
+
+  // Sirf logged-in user — koi fallback employee nahi
+  const [employeeId, setEmployeeId] = useState(
+    currentEmp?.id || user?.employeeId || ""
+  );
+
+  useEffect(() => {
+    setEmployeeId(currentEmp?.id || user?.employeeId || "");
+  }, [currentEmp, user]);
+
   const [leaveTypeId, setLeaveTypeId] = useState(leaveTypes[0]?.id || "lt-cl");
-  const [fromDate, setFromDate] = useState("2026-10-12");
-  const [toDate, setToDate] = useState("2026-10-12");
+  const [fromDate, setFromDate] = useState("2026-10-21");
+  const [toDate, setToDate] = useState("2026-10-21");
   const [isHalfDay, setIsHalfDay] = useState(false);
   const [halfDaySession, setHalfDaySession] = useState<"MORNING" | "AFTERNOON">("AFTERNOON");
   const [reason, setReason] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const selectedPolicy = leaveTypes.find((t) => t.id === leaveTypeId);
+
+  // Identify applying employee and designated approver
+  const applyingEmp = employees.find((e) => e.id === employeeId) || currentEmp;
+  const approverInfo = React.useMemo(() => {
+    if (!applyingEmp) return "Manager / Team Lead";
+    const code = (applyingEmp.employeeCode || "").toUpperCase();
+    const dept = (applyingEmp.department || "").toLowerCase();
+
+    // If Team Lead applies -> Approver is HR Admin (Anvita Pawar GA137)
+    if (code === "GA62" || code === "GA26" || code === "GA06" || code === "GA133" || code === "GA115") {
+      return "Anvita Pawar (HR Admin)";
+    }
+    // If HR Admin applies -> Approver is Head HR (Vanshu Nalode)
+    if (code === "GA137" || applyingEmp.email?.toLowerCase().includes("anvita")) {
+      return "Vanshu Nalode (Head HR / Tenant Admin)";
+    }
+    // If employee is in IT team -> Approver is Ajay Pawar
+    if (dept.includes("it") || dept.includes("information") || applyingEmp.departmentId === "6") {
+      return "Ajay Pawar (IT Team Lead)";
+    }
+    if (dept.includes("learning") || dept.includes("l&d") || applyingEmp.departmentId === "8") {
+      return "Neha Dube (L&D Team Lead)";
+    }
+    if (dept.includes("marketing") || dept.includes("dm") || applyingEmp.departmentId === "7") {
+      return "Nasim Shaikh (Digital Marketing TL)";
+    }
+    if (dept.includes("corporate") || dept.includes("cr") || applyingEmp.departmentId === "10") {
+      return "Shruti Das (Corporate Relations TL)";
+    }
+    if (dept.includes("sales") || applyingEmp.departmentId === "11") {
+      return "Aditya Bhadouria (Sales Team Lead)";
+    }
+    return "Reporting Manager / Team Lead";
+  }, [applyingEmp]);
 
   // Compute taken leaves for this employee and type
   const usedDays = leaveRequests
@@ -69,8 +122,12 @@ export function ApplyLeaveModal({ isOpen, onClose }: ApplyLeaveModalProps) {
     setToDate(val);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!employeeId) {
+      setErrorMessage("Aapka employee record nahi mila. HR se contact karein.");
+      return;
+    }
     if (!reason.trim()) {
       setErrorMessage("Please state a brief reason for the leave application.");
       return;
@@ -80,21 +137,69 @@ export function ApplyLeaveModal({ isOpen, onClose }: ApplyLeaveModalProps) {
       return;
     }
 
-    applyLeave({
-      employeeId,
-      leaveTypeId,
-      fromDate,
-      toDate: isHalfDay ? fromDate : toDate,
-      days: daysCount,
-      isHalfDay,
-      halfDaySession: isHalfDay ? halfDaySession : undefined,
-      reason: reason.trim(),
-    });
+    const effectiveEndDate = isHalfDay ? fromDate : toDate;
 
-    setReason("");
-    setErrorMessage("");
-    onClose();
+    // Client-side quick check: prevent multiple leaves on same day (full or half)
+    const hasExisting = leaveRequests.some((l) => {
+      if (l.employeeId !== employeeId || l.status === "REJECTED") return false;
+      return l.fromDate <= effectiveEndDate && l.toDate >= fromDate;
+    });
+    if (hasExisting) {
+      const msg = "Already applied! Iss date par pehle hi leave apply ho chuki hai (chahe Full Day ho ya Half Day, same date par dubara apply nahi kar sakte).";
+      setErrorMessage(msg);
+      toast.error("Already applied for this date!");
+      return;
+    }
+
+    try {
+      const code = selectedPolicy?.code || "CL";
+      await leaveApi.applyLeave({
+        leaveTypeCode: code,
+        startDate: fromDate,
+        endDate: effectiveEndDate,
+        halfDay: isHalfDay,
+        halfDaySession: isHalfDay ? (halfDaySession === "MORNING" ? "FIRST_HALF" : "SECOND_HALF") : null,
+        reason: reason.trim(),
+      });
+      toast.success(`Leave applied successfully! Forwarded to ${approverInfo} for approval.`);
+      setReason("");
+      setErrorMessage("");
+      onClose();
+      if (onLeaveApplied) {
+        onLeaveApplied();
+      }
+    } catch (err: any) {
+      const errMsg = err?.message || "Failed to submit leave";
+      if (
+        errMsg.toLowerCase().includes("already applied") ||
+        errMsg.toLowerCase().includes("exists") ||
+        errMsg.toLowerCase().includes("overlap")
+      ) {
+        setErrorMessage("Already applied! Iss date par pehle hi leave apply ho chuki hai (chahe Full Day ho ya Half Day).");
+        toast.error("Already applied for this date!");
+        return;
+      }
+      // Fallback local save only if other network failure
+      applyLeave({
+        employeeId,
+        leaveTypeId,
+        fromDate,
+        toDate: effectiveEndDate,
+        days: daysCount,
+        isHalfDay,
+        halfDaySession: isHalfDay ? halfDaySession : undefined,
+        reason: reason.trim(),
+      });
+      toast.success(`Leave request registered for ${approverInfo}!`);
+      setReason("");
+      setErrorMessage("");
+      onClose();
+      if (onLeaveApplied) {
+        onLeaveApplied();
+      }
+    }
   };
+
 
   return (
     <Modal
@@ -111,15 +216,29 @@ export function ApplyLeaveModal({ isOpen, onClose }: ApplyLeaveModalProps) {
           </div>
         )}
 
-        <Select
-          label="Applying Employee"
-          value={employeeId}
-          onChange={(e) => setEmployeeId(e.target.value)}
-          options={employees.map((e) => ({
-            label: `${e.firstName} ${e.lastName} (${e.employeeCode})`,
-            value: e.id,
-          }))}
-        />
+        {/* Applying Employee field */}
+        {/* Applying Employee — ALWAYS the logged-in user, read-only for everyone */}
+        <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block">
+              Applying Employee
+            </span>
+            <p className="text-sm font-bold text-gray-950 mt-0.5">
+              {currentEmp
+                ? `${currentEmp.firstName} ${currentEmp.lastName}`
+                : (user?.fullName || user?.name)}
+              <span className="text-xs font-mono text-gray-500 font-normal ml-2">
+                ({currentEmp?.employeeCode || user?.employeeCode || ""})
+              </span>
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] text-gray-400 block">Designated Approver</span>
+            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+              {approverInfo}
+            </span>
+          </div>
+        </div>
 
         <div className="space-y-1.5">
           <Select
@@ -245,6 +364,6 @@ export function ApplyLeaveModal({ isOpen, onClose }: ApplyLeaveModalProps) {
           </Button>
         </div>
       </form>
-    </Modal>
+    </Modal >
   );
 }

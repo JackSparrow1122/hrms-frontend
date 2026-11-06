@@ -15,6 +15,7 @@ import { EmployeesPage } from "./pages/people/EmployeesPage";
 import { EmployeeProfilePage } from "./pages/people/EmployeeProfilePage";
 import { DepartmentsPage } from "./pages/people/DepartmentsPage";
 import { DesignationsPage } from "./pages/people/DesignationsPage";
+import { BranchesPage } from "./pages/people/BranchesPage";
 import { OrganizationPage } from "./pages/people/OrganizationPage";
 import { DocumentsPage } from "./pages/people/DocumentsPage";
 import { AttendancePage } from "./pages/time/AttendancePage";
@@ -30,6 +31,7 @@ import { PayrollRunPage } from "./pages/payroll/PayrollRunPage";
 import { PayslipsPage } from "./pages/payroll/PayslipsPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
 import { UsersRolesPage } from "./pages/admin/UsersRolesPage";
+import { OrganizationsPage } from "./pages/admin/OrganizationsPage";
 import { SettingsPage } from "./pages/admin/SettingsPage";
 import { NotificationsPage } from "./pages/admin/NotificationsPage";
 import { AuditLogsPage } from "./pages/admin/AuditLogsPage";
@@ -97,7 +99,7 @@ function MainAppContent() {
           <Route
             path="/people/employees"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN", "MANAGER"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD"]}>
                 <EmployeesPage onOpenAddEmployee={() => setIsAddEmployeeOpen(true)} />
               </RoleRoute>
             }
@@ -105,7 +107,15 @@ function MainAppContent() {
           <Route
             path="/people/employees/:id"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN", "MANAGER"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]}>
+                <EmployeeProfilePage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]}>
                 <EmployeeProfilePage />
               </RoleRoute>
             }
@@ -113,7 +123,7 @@ function MainAppContent() {
           <Route
             path="/people/departments"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"]}>
                 <DepartmentsPage />
               </RoleRoute>
             }
@@ -121,15 +131,23 @@ function MainAppContent() {
           <Route
             path="/people/designations"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"]}>
                 <DesignationsPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/people/branches"
+            element={
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN"]}>
+                <BranchesPage />
               </RoleRoute>
             }
           />
           <Route
             path="/people/organization"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN", "MANAGER"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"]}>
                 <OrganizationPage />
               </RoleRoute>
             }
@@ -137,7 +155,7 @@ function MainAppContent() {
           <Route
             path="/people/documents"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN", "MANAGER"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]}>
                 <DocumentsPage />
               </RoleRoute>
             }
@@ -148,7 +166,7 @@ function MainAppContent() {
           <Route
             path="/time/regularization"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN", "MANAGER"]}>
+              <RoleRoute allowedRoles={["TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD"]}>
                 <RegularizationPage />
               </RoleRoute>
             }
@@ -156,7 +174,7 @@ function MainAppContent() {
           <Route
             path="/time/shifts"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN", "MANAGER"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"]}>
                 <ShiftsPage />
               </RoleRoute>
             }
@@ -166,12 +184,16 @@ function MainAppContent() {
           {/* Leave Management */}
           <Route
             path="/leave/overview"
-            element={<LeaveOverviewPage onOpenApplyLeave={() => setIsApplyLeaveOpen(true)} />}
+            element={
+              <RoleRoute allowedRoles={["TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]}>
+                <LeaveOverviewPage onOpenApplyLeave={() => setIsApplyLeaveOpen(true)} />
+              </RoleRoute>
+            }
           />
           <Route
             path="/leave/requests"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN", "MANAGER"]}>
+              <RoleRoute allowedRoles={["TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]}>
                 <LeaveRequestsPage onOpenApplyLeave={() => setIsApplyLeaveOpen(true)} />
               </RoleRoute>
             }
@@ -179,7 +201,7 @@ function MainAppContent() {
           <Route
             path="/leave/policies"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["TENANT_ADMIN", "HR_ADMIN"]}>
                 <LeavePoliciesPage />
               </RoleRoute>
             }
@@ -189,7 +211,7 @@ function MainAppContent() {
           <Route
             path="/payroll/dashboard"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "PAYROLL_ADMIN"]}>
                 <PayrollDashboardPage />
               </RoleRoute>
             }
@@ -197,7 +219,7 @@ function MainAppContent() {
           <Route
             path="/payroll/salary-structures"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "PAYROLL_ADMIN"]}>
                 <SalaryStructurePage />
               </RoleRoute>
             }
@@ -205,7 +227,7 @@ function MainAppContent() {
           <Route
             path="/payroll/runs"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "PAYROLL_ADMIN"]}>
                 <PayrollRunPage />
               </RoleRoute>
             }
@@ -216,7 +238,7 @@ function MainAppContent() {
           <Route
             path="/reports"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN", "MANAGER"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "MANAGER"]}>
                 <ReportsPage />
               </RoleRoute>
             }
@@ -224,9 +246,17 @@ function MainAppContent() {
 
           {/* Administration */}
           <Route
-            path="/admin/users-roles"
+            path="/admin/organizations"
             element={
               <RoleRoute allowedRoles={["SUPER_ADMIN"]}>
+                <OrganizationsPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/admin/users-roles"
+            element={
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN"]}>
                 <UsersRolesPage />
               </RoleRoute>
             }
@@ -234,7 +264,7 @@ function MainAppContent() {
           <Route
             path="/admin/settings"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"]}>
                 <SettingsPage />
               </RoleRoute>
             }
@@ -243,7 +273,7 @@ function MainAppContent() {
           <Route
             path="/admin/audit-logs"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"]}>
                 <AuditLogsPage />
               </RoleRoute>
             }
@@ -253,7 +283,7 @@ function MainAppContent() {
           <Route
             path="/recruitment"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"]}>
                 <RecruitmentPage />
               </RoleRoute>
             }
@@ -261,7 +291,7 @@ function MainAppContent() {
           <Route
             path="/assets"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"]}>
                 <AssetsPage />
               </RoleRoute>
             }
@@ -269,7 +299,7 @@ function MainAppContent() {
           <Route
             path="/performance"
             element={
-              <RoleRoute allowedRoles={["SUPER_ADMIN", "HR_ADMIN"]}>
+              <RoleRoute allowedRoles={["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD"]}>
                 <PerformancePage />
               </RoleRoute>
             }

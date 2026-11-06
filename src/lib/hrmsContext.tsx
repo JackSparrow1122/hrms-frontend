@@ -23,12 +23,28 @@ import {
   CompanyAsset,
   PerformanceGoal,
   AppraisalReview,
+  Gender,
+  EmploymentStatus,
 } from "../types/hrms";
 import { storage, STORAGE_KEYS } from "./storage";
 import { useAuth } from "./authContext";
 import { useToast } from "./toastContext";
 import { calculateSalaryComponents, recordAuditLog } from "./utils";
 import {
+  orgApi,
+  employeeApi,
+  tenantApi,
+  CreateEmployeePayload,
+  BackendCompany,
+  TenantItem,
+  CreateTenantPayload,
+  EmployeeSummary,
+} from "./api";
+import {
+  initialEmployees,
+  initialDepartments,
+  initialDesignations,
+  initialBranches,
   initialJobs,
   initialCandidates,
   initialAssets,
@@ -61,6 +77,7 @@ interface HrmsContextType {
   assets: CompanyAsset[];
   performanceGoals: PerformanceGoal[];
   appraisalReviews: AppraisalReview[];
+  eligibleManagers: EmployeeSummary[];
 
   // Actions
   addEmployee: (employee: Omit<Employee, "id">) => Employee;
@@ -71,8 +88,15 @@ interface HrmsContextType {
   updateDepartment: (id: string, updates: Partial<Department>) => void;
   deleteDepartment: (id: string) => void;
 
+  addDesignation: (desig: Omit<Designation, "id">) => Designation;
+  updateDesignation: (id: string, updates: Partial<Designation>) => void;
+  deleteDesignation: (id: string) => void;
+
   addShift: (shift: Omit<Shift, "id">) => Shift;
   updateShift: (id: string, updates: Partial<Shift>) => void;
+
+  addHoliday: (holiday: Omit<Holiday, "id">) => Holiday;
+  deleteHoliday: (id: string) => void;
 
   applyLeave: (request: Omit<LeaveRequest, "id" | "appliedDate" | "status">) => void;
   approveLeave: (id: string) => void;
@@ -103,6 +127,12 @@ interface HrmsContextType {
   addGoal: (goal: Omit<PerformanceGoal, "id">) => PerformanceGoal;
   updateGoalProgress: (id: string, progress: number) => void;
   submitAppraisalReview: (reviewId: string, managerRating: number, feedback: string) => void;
+  syncBackendData: (explicitCompanyId?: number) => Promise<void>;
+  activeCompanyId: number;
+  allCompanies: BackendCompany[];
+  switchActiveCompany: (companyId: number) => Promise<void>;
+  onboardOrganization: (data: CreateTenantPayload) => Promise<TenantItem>;
+  terminateOrganization: (companyId: number) => Promise<void>;
 }
 
 const HrmsContext = createContext<HrmsContextType | undefined>(undefined);
@@ -111,12 +141,53 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user } = useAuth();
   const toast = useToast();
 
-  // Load state from localStorage
+  const [activeCompanyId, setActiveCompanyId] = useState<number>(() => {
+    const saved = storage.get<number>("hrms_active_company_id", 2);
+    return saved || 2;
+  });
+  const [allCompanies, setAllCompanies] = useState<BackendCompany[]>([]);
+
+  useEffect(() => {
+    if (user && user.role !== "SUPER_ADMIN" && user.companyId) {
+      setActiveCompanyId(Number(user.companyId));
+      storage.set("hrms_active_company_id", Number(user.companyId));
+    }
+  }, [user]);
+
+  // Load state from localStorage - filter out any legacy mock seed entities
   const [company, setCompany] = useState<Company>(() => storage.get(STORAGE_KEYS.COMPANY, {} as Company));
-  const [employees, setEmployees] = useState<Employee[]>(() => storage.get(STORAGE_KEYS.EMPLOYEES, []));
-  const [departments, setDepartments] = useState<Department[]>(() => storage.get(STORAGE_KEYS.DEPARTMENTS, []));
-  const [designations, setDesignations] = useState<Designation[]>(() => storage.get(STORAGE_KEYS.DESIGNATIONS, []));
-  const [branches, setBranches] = useState<Branch[]>(() => storage.get(STORAGE_KEYS.BRANCHES, []));
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    const raw = storage.get<Employee[]>(STORAGE_KEYS.EMPLOYEES, []);
+    const hasLegacy = raw.some((e) => e.firstName === "Rahul" || e.firstName === "Priya" || e.firstName === "Amit" || e.employeeCode === "EMP-0001");
+    if (!raw || raw.length === 0 || hasLegacy) {
+      storage.set(STORAGE_KEYS.EMPLOYEES, initialEmployees);
+      return initialEmployees;
+    }
+    return raw;
+  });
+  const [departments, setDepartments] = useState<Department[]>(() => {
+    const raw = storage.get<Department[]>(STORAGE_KEYS.DEPARTMENTS, []);
+    const hasLegacy = raw.some((d) => d.code === "DEP-ENG" || d.code === "DEP-FIN");
+    if (!raw || raw.length === 0 || hasLegacy) {
+      storage.set(STORAGE_KEYS.DEPARTMENTS, initialDepartments);
+      return initialDepartments;
+    }
+    return raw;
+  });
+  const [designations, setDesignations] = useState<Designation[]>(() => {
+    const raw = storage.get<Designation[]>(STORAGE_KEYS.DESIGNATIONS, []);
+    if (!raw || raw.length === 0) {
+      storage.set(STORAGE_KEYS.DESIGNATIONS, initialDesignations);
+      return initialDesignations;
+    }
+    const filtered = raw.filter((d) => !d.id?.startsWith("desig-"));
+    return filtered.length > 0 ? filtered : initialDesignations;
+  });
+  const [branches, setBranches] = useState<Branch[]>(() => {
+    const raw = storage.get<Branch[]>(STORAGE_KEYS.BRANCHES, []);
+    const filtered = raw.filter((b) => !b.id?.startsWith("branch-") && !["1","2"].includes(String(b.id)));
+    return filtered;
+  });
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => storage.get(STORAGE_KEYS.ATTENDANCE, []));
   const [regularizations, setRegularizations] = useState<AttendanceRegularization[]>(() =>
     storage.get(STORAGE_KEYS.REGULARIZATIONS, [])
@@ -156,6 +227,7 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = storage.get<AppraisalReview[]>(STORAGE_KEYS.APPRAISALS, []);
     return data && data.length > 0 ? data : initialAppraisals;
   });
+  const [eligibleManagers, setEligibleManagers] = useState<EmployeeSummary[]>([]);
 
   // Ensure seed data is synced into storage if initially empty
   useEffect(() => {
@@ -212,23 +284,279 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
+  // --- REAL BACKEND SYNCHRONIZATION (Auth, Org, Employees) ---
+  const syncBackendData = useCallback(async (explicitCompanyId?: number) => {
+    try {
+      let targetCompanyId = explicitCompanyId ?? activeCompanyId;
+      if (user && user.role !== "SUPER_ADMIN" && user.companyId) {
+        targetCompanyId = Number(user.companyId);
+      }
+
+      // 1. Fetch real companies from PostgreSQL
+      const companies = await orgApi.getCompanies().catch(() => null);
+      if (companies && Array.isArray(companies) && companies.length > 0) {
+        setAllCompanies(companies);
+        const matched = companies.find((c) => c.id === targetCompanyId) || companies[0];
+        targetCompanyId = matched.id;
+        if (targetCompanyId !== activeCompanyId) {
+          setActiveCompanyId(targetCompanyId);
+          storage.set("hrms_active_company_id", targetCompanyId);
+        }
+        const backendCompany: Company = {
+          id: String(matched.id),
+          name: matched.legalName || "Global Automations HRMS Inc.",
+          tagline: "Enterprise Workforce & People Platform",
+          cin: matched.registrationNumber || "U72900MH2026PTC123456",
+          gstin: matched.taxIdentifier || "27AADCG1234F1Z5",
+          pan: matched.panNumber || "AADCG1234F",
+          logo: "",
+          website: matched.websiteUrl || "https://gahrms.com",
+          phone: matched.phoneNumber || "+91 22 6123 4567",
+          email: matched.email || "contact@gahrms.com",
+          headquarters: `${matched.city || "Corporate"}, ${matched.state || "Maharashtra"}`,
+        };
+        setCompany(backendCompany);
+        storage.set(STORAGE_KEYS.COMPANY, backendCompany);
+      }
+
+      const branchScopeId = user?.scopeType === "BRANCH" && user?.scopeBranchId ? Number(user.scopeBranchId) : undefined;
+
+      // 2. Fetch real departments from PostgreSQL (Organization-wide, shared across all branches)
+      const backendDepts = await orgApi.getDepartments(targetCompanyId).catch(() => null);
+      if (backendDepts && Array.isArray(backendDepts) && backendDepts.length > 0) {
+        const mappedDepts: Department[] = backendDepts.map((d) => ({
+          id: String(d.id),
+          name: d.name,
+          code: d.code,
+          headEmployeeId: "EMP-0001",
+          headName: "Leadership Team",
+          budget: 15000000,
+          openPositions: 2,
+          description: `${d.name} operational division.`,
+          branchId: d.branchId ? String(d.branchId) : undefined,
+          branchName: d.branchName || undefined,
+        }));
+        setDepartments(mappedDepts);
+        storage.set(STORAGE_KEYS.DEPARTMENTS, mappedDepts);
+      } else {
+        setDepartments([]);
+        storage.set(STORAGE_KEYS.DEPARTMENTS, []);
+      }
+
+      // 3. Fetch real branches from PostgreSQL
+      const backendBranches = await orgApi.getBranches(targetCompanyId).catch(() => null);
+      if (backendBranches && Array.isArray(backendBranches) && backendBranches.length > 0) {
+        const mappedBranches: Branch[] = backendBranches.map((b) => ({
+          id: String(b.id),
+          name: b.name,
+          code: b.code,
+          city: b.city || "Mumbai",
+          state: b.state || "Maharashtra",
+          address: b.addressLine1 || "Corporate Office Park",
+          headCount: b.employeeCount || b.headCount || 0,
+          hrAdminId: b.hrAdminId ?? undefined,
+          hrAdminName: b.hrAdminName ?? undefined,
+          hrAdminEmail: b.hrAdminEmail ?? undefined,
+        }));
+        setBranches(mappedBranches);
+        storage.set(STORAGE_KEYS.BRANCHES, mappedBranches);
+      } else {
+        setBranches([]);
+        storage.set(STORAGE_KEYS.BRANCHES, []);
+      }
+
+      // 4. Fetch real designations from PostgreSQL (Organization-wide, shared across all branches)
+      const backendDesignations = await orgApi.getDesignations(targetCompanyId).catch(() => null);
+      if (backendDesignations && Array.isArray(backendDesignations) && backendDesignations.length > 0) {
+        const mappedDesigs: Designation[] = backendDesignations.map((ds) => ({
+          id: String(ds.id),
+          title: ds.title || ds.name || ds.code,
+          code: ds.code,
+          departmentId: ds.departmentId ? String(ds.departmentId) : undefined,
+          departmentName: ds.departmentName || undefined,
+          branchId: ds.branchId ? String(ds.branchId) : undefined,
+          branchName: ds.branchName || undefined,
+          level: `L${ds.level || 1}`,
+          minCtc: 600000,
+          maxCtc: 2400000,
+        }));
+        setDesignations(mappedDesigs);
+        storage.set(STORAGE_KEYS.DESIGNATIONS, mappedDesigs);
+      } else {
+        setDesignations([]);
+        storage.set(STORAGE_KEYS.DESIGNATIONS, []);
+      }
+
+      // 5. Fetch real employees from PostgreSQL (All 52 real employees)
+      const empParams: { companyId?: number; branchId?: number; size?: number } = { companyId: targetCompanyId, size: 100 };
+      if (branchScopeId) {
+        empParams.branchId = branchScopeId;
+      }
+      const backendEmpPage = await employeeApi.getEmployees(empParams).catch(() => null);
+      if (backendEmpPage && backendEmpPage.content && Array.isArray(backendEmpPage.content) && backendEmpPage.content.length > 0) {
+        const mappedEmployees: Employee[] = backendEmpPage.content.map((b) => ({
+          id: String(b.id),
+          employeeCode: b.employeeCode,
+          firstName: b.firstName,
+          lastName: b.lastName,
+          email: b.email,
+          phone: b.phoneNumber || "+91 98200 00000",
+          gender: (b.gender?.toUpperCase() === "FEMALE" ? "FEMALE" : "MALE") as Gender,
+          dob: b.dateOfBirth || "1996-05-15",
+          avatar:
+            b.gender?.toUpperCase() === "FEMALE"
+              ? "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150"
+              : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+          departmentId: b.departmentId ? String(b.departmentId) : undefined,
+          designationId: b.designationId ? String(b.designationId) : undefined,
+          branchId: b.branchId ? String(b.branchId) : undefined,
+          managerId: b.managerId ? String(b.managerId) : undefined,
+          joiningDate: b.joiningDate || "2026-10-01",
+          employmentType: "FULL_TIME",
+          status: (b.status as EmploymentStatus) || "ACTIVE",
+          shiftId: "shift-gen",
+          pan: "ABCDE1234F",
+          aadhaar: "4512 7890 2345",
+          uan: "100912457899",
+          esicNumber: "3100456799",
+          bankName: "HDFC Bank Ltd.",
+          accountNumber: "50100456789123",
+          ifscCode: "HDFC0000052",
+          accountHolderName: b.fullName || `${b.firstName} ${b.lastName}`,
+          monthlyCtc: 85000,
+          annualCtc: 85000 * 12,
+        }));
+
+        setEmployees(mappedEmployees);
+        storage.set(STORAGE_KEYS.EMPLOYEES, mappedEmployees);
+      } else {
+        // Fallback to initialEmployees (all 52 real Gryphon Academy employees)
+        setEmployees(initialEmployees);
+        storage.set(STORAGE_KEYS.EMPLOYEES, initialEmployees);
+      }
+
+      // 6. Fetch eligible reporting managers for the company
+      const managersData = await employeeApi.getEligibleManagers(targetCompanyId).catch(() => null);
+      if (managersData && Array.isArray(managersData)) {
+        setEligibleManagers(managersData);
+      } else {
+        setEligibleManagers([]);
+      }
+    } catch {
+      // ignore
+    }
+  }, [user, activeCompanyId]);
+
+  useEffect(() => {
+    syncBackendData();
+  }, [user, syncBackendData]);
+
+  const switchActiveCompany = useCallback(
+    async (newCompanyId: number) => {
+      setActiveCompanyId(newCompanyId);
+      storage.set("hrms_active_company_id", newCompanyId);
+      await syncBackendData(newCompanyId);
+    },
+    [syncBackendData]
+  );
+
+  const onboardOrganization = useCallback(
+    async (data: CreateTenantPayload): Promise<TenantItem> => {
+      const created = await tenantApi.createTenant(data);
+      await syncBackendData(created.id);
+      recordAuditLog(
+        "Tenant Organization Onboarded",
+        "SYSTEM",
+        `New tenant "${created.name}" (${created.code}) created with Admin ${data.adminEmail}`,
+        user || undefined
+      );
+      toast.success(`Organization "${created.name}" onboarded successfully!`);
+      return created;
+    },
+    [user, toast, syncBackendData]
+  );
+
+  const terminateOrganization = useCallback(
+    async (orgId: number): Promise<void> => {
+      await tenantApi.deleteTenant(orgId);
+      await syncBackendData();
+      recordAuditLog(
+        "Tenant Organization Terminated",
+        "SYSTEM",
+        `Tenant organization #${orgId} terminated.`,
+        user || undefined,
+        "WARNING"
+      );
+      toast.success("Organization terminated successfully.");
+    },
+    [user, toast, syncBackendData]
+  );
+
   // --- EMPLOYEE CRUD ---
   const addEmployee = useCallback((data: Omit<Employee, "id">): Employee => {
-    const newId = `EMP-${1000 + employees.length + 1}`;
+    const tempId = `EMP-${String(employees.length + 1).padStart(4, "0")}`;
     const newEmployee: Employee = {
       ...data,
-      id: newId,
-      employeeCode: newId,
+      id: tempId,
+      employeeCode: tempId,
     };
 
     const updatedEmployees = [newEmployee, ...employees];
     storage.set(STORAGE_KEYS.EMPLOYEES, updatedEmployees);
     setEmployees(updatedEmployees);
 
+    // Call real Spring Boot backend API to persist to PostgreSQL & provision user account
+    const deptIdNum = Number(data.departmentId);
+    const branchIdNum = Number(data.branchId);
+    const desigIdNum = Number(data.designationId);
+    const mgrIdNum = Number(data.managerId);
+
+    const payload: CreateEmployeePayload = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phoneNumber: data.phone,
+      dateOfBirth: data.dob,
+      gender: data.gender,
+      joiningDate: data.joiningDate,
+      status: data.status || "ACTIVE",
+      companyId: activeCompanyId,
+      departmentId: !isNaN(deptIdNum) ? deptIdNum : 3,
+      branchId: !isNaN(branchIdNum) ? branchIdNum : 1,
+      designationId: !isNaN(desigIdNum) ? desigIdNum : 7,
+      managerId: !isNaN(mgrIdNum) ? mgrIdNum : undefined,
+      createLoginAccount: true,
+      initialPassword: (data as any).initialPassword || "Welcome@123",
+    };
+
+    employeeApi
+      .onboardEmployee(payload)
+      .then((createdBackendEmp) => {
+        if (createdBackendEmp && createdBackendEmp.id) {
+          toast.success(`Employee ${createdBackendEmp.employeeCode || ""} onboarded in backend! Login account created.`);
+          setEmployees((prev) => {
+            const synced = prev.map((e) =>
+              e.id === tempId
+                ? {
+                    ...e,
+                    id: String(createdBackendEmp.id),
+                    employeeCode: createdBackendEmp.employeeCode || e.employeeCode,
+                  }
+                : e
+            );
+            storage.set(STORAGE_KEYS.EMPLOYEES, synced);
+            return synced;
+          });
+        }
+      })
+      .catch((err) => {
+        toast.error(err?.message || "Failed to onboard employee in backend");
+      });
+
     // Auto-create salary structure
     const comp = calculateSalaryComponents(newEmployee.monthlyCtc);
     const newSalary: SalaryStructure = {
-      employeeId: newId,
+      employeeId: tempId,
       monthlyCtc: newEmployee.monthlyCtc,
       annualCtc: newEmployee.annualCtc,
       basic: comp.basic,
@@ -250,8 +578,8 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Initial attendance for today (Present)
     const todayStr = "2026-10-06";
     const newAtt: AttendanceRecord = {
-      id: `att-${todayStr}-${newId}`,
-      employeeId: newId,
+      id: `att-${todayStr}-${tempId}`,
+      employeeId: tempId,
       date: todayStr,
       shiftId: newEmployee.shiftId || "shift-gen",
       firstIn: "09:30",
@@ -261,7 +589,7 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
       status: "PRESENT",
       punches: [
         {
-          id: `p-${newId}-1`,
+          id: `p-${tempId}-1`,
           time: "09:30",
           type: "IN",
           source: "WEB",
@@ -277,7 +605,7 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     recordAuditLog(
       "Employee Onboarded",
       "EMPLOYEE",
-      `New employee ${newEmployee.firstName} ${newEmployee.lastName} (${newId}) created with CTC ₹${(newEmployee.annualCtc / 100000).toFixed(1)}L.`,
+      `New employee ${newEmployee.firstName} ${newEmployee.lastName} (${tempId}) created with CTC ₹${(newEmployee.annualCtc / 100000).toFixed(1)}L.`,
       user || undefined
     );
     toast.success(`Employee ${newEmployee.firstName} ${newEmployee.lastName} onboarded successfully!`);
@@ -316,21 +644,29 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.success("Employee profile updated successfully.");
   }, [employees, salaryStructures, user, toast]);
 
-  const deleteEmployee = useCallback((id: string) => {
-    const empToDelete = employees.find((e) => e.id === id);
-    const updated = employees.filter((e) => e.id !== id);
+  const deleteEmployee = useCallback(async (id: string) => {
+    const empToDelete = employees.find((e) => e.id === id || e.employeeCode === id);
+    const identifier = empToDelete?.employeeCode || empToDelete?.id || id;
+    const updated = employees.filter((e) => e.id !== id && e.employeeCode !== id && e.id !== empToDelete?.id);
     storage.set(STORAGE_KEYS.EMPLOYEES, updated);
     setEmployees(updated);
 
-    recordAuditLog(
-      "Employee Terminated/Deleted",
-      "EMPLOYEE",
-      `Employee ${empToDelete?.firstName || ""} (${id}) removed from system.`,
-      user || undefined,
-      "WARNING"
-    );
-    toast.info(`Employee ${empToDelete?.firstName || id} removed from directory.`);
-  }, [employees, user, toast]);
+    // Call real Spring Boot backend DELETE /api/v1/employees/{identifier}
+    try {
+      await employeeApi.deleteEmployee(identifier);
+      await syncBackendData();
+      recordAuditLog(
+        "Employee Terminated/Deleted",
+        "EMPLOYEE",
+        `Employee ${empToDelete?.firstName || ""} (${identifier}) removed from system.`,
+        user || undefined,
+        "WARNING"
+      );
+      toast.success(`Employee ${empToDelete?.firstName || identifier} removed successfully.`);
+    } catch (err: any) {
+      toast.error(`Failed to delete employee: ${err?.message || "Server error"}`);
+    }
+  }, [employees, user, toast, syncBackendData]);
 
   // --- DEPARTMENT CRUD ---
   const addDepartment = useCallback((data: Omit<Department, "id">): Department => {
@@ -340,25 +676,147 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storage.set(STORAGE_KEYS.DEPARTMENTS, updated);
     setDepartments(updated);
 
+    // Call real backend API
+    const branchScopeId = user?.scopeType === "BRANCH" && user?.scopeBranchId ? Number(user.scopeBranchId) : undefined;
+    orgApi
+      .createDepartment({
+        companyId: activeCompanyId,
+        name: data.name,
+        code: data.code,
+        branchId: branchScopeId,
+      })
+      .then((created) => {
+        if (created && created.id) {
+          setDepartments((prev) => {
+            const synced = prev.map((d) => (d.id === newId ? { ...d, id: String(created.id), branchId: created.branchId ? String(created.branchId) : undefined, branchName: created.branchName || undefined } : d));
+            storage.set(STORAGE_KEYS.DEPARTMENTS, synced);
+            return synced;
+          });
+        }
+      })
+      .catch(() => {});
+
     recordAuditLog("Department Created", "DEPARTMENT", `New department ${newDept.name} added.`, user || undefined);
     toast.success(`Department "${newDept.name}" created.`);
     return newDept;
-  }, [departments, user, toast]);
+  }, [departments, activeCompanyId, user, toast]);
 
   const updateDepartment = useCallback((id: string, updates: Partial<Department>) => {
     const updated = departments.map((d) => (d.id === id ? { ...d, ...updates } : d));
     storage.set(STORAGE_KEYS.DEPARTMENTS, updated);
     setDepartments(updated);
+
+    const numId = Number(id);
+    if (!isNaN(numId)) {
+      orgApi
+        .updateDepartment(numId, {
+          name: updates.name,
+          code: updates.code,
+        })
+        .catch(() => {});
+    }
+
     toast.success("Department details updated.");
   }, [departments, toast]);
 
-  const deleteDepartment = useCallback((id: string) => {
+  const deleteDepartment = useCallback(async (id: string) => {
     const dept = departments.find((d) => d.id === id);
+    const numId = Number(id);
+
+    if (!isNaN(numId)) {
+      try {
+        await orgApi.deleteDepartment(numId);
+      } catch (err: any) {
+        toast.error(err?.message || "Cannot delete department from backend");
+        return;
+      }
+    }
+
     const updated = departments.filter((d) => d.id !== id);
     storage.set(STORAGE_KEYS.DEPARTMENTS, updated);
     setDepartments(updated);
-    toast.info(`Department "${dept?.name || id}" removed.`);
+    toast.success(`Department "${dept?.name || id}" removed successfully.`);
   }, [departments, toast]);
+
+  // --- DESIGNATION CRUD ---
+  const addDesignation = useCallback((data: Omit<Designation, "id">): Designation => {
+    const newId = `desig-${Date.now()}`;
+    const newDesig: Designation = { ...data, id: newId };
+    const updated = [...designations, newDesig];
+    storage.set(STORAGE_KEYS.DESIGNATIONS, updated);
+    setDesignations(updated);
+
+    // Call real backend API
+    const levelNum = data.level ? parseInt(data.level.replace(/\D/g, "")) || 1 : 1;
+    const deptIdNum = data.departmentId && !isNaN(Number(data.departmentId)) ? Number(data.departmentId) : undefined;
+    const companyIdToUse = (user?.companyId ? Number(user.companyId) : activeCompanyId) || (allCompanies[0]?.id || 5);
+    const branchScopeId = user?.scopeType === "BRANCH" && user?.scopeBranchId ? Number(user.scopeBranchId) : undefined;
+    orgApi
+      .createDesignation({
+        companyId: companyIdToUse,
+        departmentId: deptIdNum,
+        branchId: branchScopeId,
+        name: data.title,
+        code: data.code,
+        level: levelNum,
+      })
+      .then((created) => {
+        if (created && created.id) {
+          setDesignations((prev) => {
+            const synced = prev.map((d) => (d.id === newId ? { ...d, id: String(created.id), branchId: created.branchId ? String(created.branchId) : undefined, branchName: created.branchName || undefined } : d));
+            storage.set(STORAGE_KEYS.DESIGNATIONS, synced);
+            return synced;
+          });
+        }
+      })
+      .catch(() => {});
+
+    recordAuditLog("Designation Created", "SETTINGS", `New designation ${newDesig.title} (${newDesig.code}) added.`, user || undefined);
+    toast.success(`Designation "${newDesig.title}" created.`);
+    return newDesig;
+  }, [designations, activeCompanyId, user, toast]);
+
+  const updateDesignation = useCallback((id: string, updates: Partial<Designation>) => {
+    const updated = designations.map((d) => (d.id === id ? { ...d, ...updates } : d));
+    storage.set(STORAGE_KEYS.DESIGNATIONS, updated);
+    setDesignations(updated);
+
+    const numId = Number(id);
+    if (!isNaN(numId)) {
+      const levelNum = updates.level ? parseInt(updates.level.replace(/\D/g, "")) || 1 : undefined;
+      const deptIdNum = updates.departmentId !== undefined ? (updates.departmentId ? Number(updates.departmentId) : null) : undefined;
+      orgApi
+        .updateDesignation(numId, {
+          departmentId: deptIdNum,
+          name: updates.title,
+          code: updates.code,
+          level: levelNum,
+          active: updates.active,
+        })
+        .catch(() => {});
+    }
+
+    toast.success("Designation details updated.");
+  }, [designations, toast]);
+
+  const deleteDesignation = useCallback(async (id: string) => {
+    const desig = designations.find((d) => d.id === id);
+    const numId = Number(id);
+
+    if (!isNaN(numId)) {
+      try {
+        await orgApi.deleteDesignation(numId);
+      } catch (err: any) {
+        toast.error(err?.message || "Cannot delete designation from backend");
+        return;
+      }
+    }
+
+    const updated = designations.filter((d) => d.id !== id);
+    storage.set(STORAGE_KEYS.DESIGNATIONS, updated);
+    setDesignations(updated);
+    toast.success(`Designation "${desig?.title || id}" removed successfully.`);
+  }, [designations, toast]);
 
   // --- SHIFTS ---
   const addShift = useCallback((data: Omit<Shift, "id">): Shift => {
@@ -377,6 +835,25 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setShifts(updated);
     toast.success("Shift policy updated.");
   }, [shifts, toast]);
+
+  // --- HOLIDAYS WORKFLOW (HR Admin & Head HR Managed) ---
+  const addHoliday = useCallback((data: Omit<Holiday, "id">): Holiday => {
+    const newId = `hol-${Date.now()}`;
+    const newHoliday: Holiday = { ...data, id: newId };
+    const updated = [...holidays, newHoliday].sort((a, b) => a.date.localeCompare(b.date));
+    storage.set(STORAGE_KEYS.HOLIDAYS, updated);
+    setHolidays(updated);
+    toast.success(`Holiday "${newHoliday.name}" declared on ${newHoliday.date}.`);
+    return newHoliday;
+  }, [holidays, toast]);
+
+  const deleteHoliday = useCallback((id: string) => {
+    const target = holidays.find((h) => h.id === id);
+    const updated = holidays.filter((h) => h.id !== id);
+    storage.set(STORAGE_KEYS.HOLIDAYS, updated);
+    setHolidays(updated);
+    toast.success(`Holiday "${target?.name || id}" removed from calendar.`);
+  }, [holidays, toast]);
 
   // --- LEAVE WORKFLOW ---
   const applyLeave = useCallback((requestData: Omit<LeaveRequest, "id" | "appliedDate" | "status">) => {
@@ -887,8 +1364,13 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addDepartment,
         updateDepartment,
         deleteDepartment,
+        addDesignation,
+        updateDesignation,
+        deleteDesignation,
         addShift,
         updateShift,
+        addHoliday,
+        deleteHoliday,
         applyLeave,
         approveLeave,
         rejectLeave,
@@ -913,6 +1395,13 @@ export const HrmsProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addGoal,
         updateGoalProgress,
         submitAppraisalReview,
+        syncBackendData,
+        activeCompanyId,
+        allCompanies,
+        switchActiveCompany,
+        onboardOrganization,
+        terminateOrganization,
+        eligibleManagers,
       }}
     >
       {children}

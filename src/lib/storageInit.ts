@@ -1,13 +1,13 @@
 import { storage, STORAGE_KEYS } from "./storage";
 import {
   initialCompany,
-  initialBranches,
+  initialEmployees,
   initialDepartments,
   initialDesignations,
+  initialBranches,
   initialShifts,
   initialLeaveTypes,
   initialHolidays,
-  initialEmployees,
   initialSalaryStructures,
   initialAttendanceRecords,
   initialRegularizations,
@@ -27,26 +27,63 @@ import {
 import { CurrentUser } from "../types/hrms";
 
 export const DEFAULT_USER: CurrentUser = {
-  id: "EMP-1001",
-  name: "Ajay Pawar",
-  email: "ajay.pawar@ga-hrms.io",
+  id: "1",
+  name: "System Administrator",
+  email: "admin@gahrms.com",
   role: "SUPER_ADMIN",
   avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-  employeeId: "EMP-1001",
-  designation: "Vice President of Engineering",
-  department: "Engineering & Cloud Platforms",
+  employeeId: "EMP-0001",
+  designation: "System Administrator",
+  department: "Executive Leadership",
 };
 
 export function initializeHrmsStorage(forceReset = false) {
   const isInitialized = storage.get<boolean>(STORAGE_KEYS.INITIALIZED, false);
 
+  // ALWAYS purge mock seed employees, mock departments, mock designations, and mock branches
+  // so that ONLY real PostgreSQL backend data is shown in the UI!
+  const purgeMockData = () => {
+    const existingEmployees = storage.get<any[]>(STORAGE_KEYS.EMPLOYEES, []);
+    const realEmployees = existingEmployees.filter(
+      (e: any) =>
+        e &&
+        e.employeeCode &&
+        !e.employeeCode.startsWith("EMP-10") &&
+        !String(e.id).startsWith("EMP-10") &&
+        !e.email?.endsWith("@ga-hrms.io")
+    );
+    storage.set(STORAGE_KEYS.EMPLOYEES, realEmployees);
+
+    const existingDepts = storage.get<any[]>(STORAGE_KEYS.DEPARTMENTS, []);
+    const realDepts = existingDepts.filter((d: any) => d && !String(d.id).startsWith("dept-") && !["1","2","3","4","5"].includes(String(d.id)));
+    storage.set(STORAGE_KEYS.DEPARTMENTS, realDepts);
+
+    const existingBranches = storage.get<any[]>(STORAGE_KEYS.BRANCHES, []);
+    const realBranches = existingBranches.filter((b: any) => b && !String(b.id).startsWith("branch-") && !["1","2"].includes(String(b.id)));
+    storage.set(STORAGE_KEYS.BRANCHES, realBranches);
+
+    const existingDesigs = storage.get<any[]>(STORAGE_KEYS.DESIGNATIONS, []);
+    const realDesigs = existingDesigs.filter((ds: any) => ds && !String(ds.id).startsWith("desig-") && !["1","2","3","4","5","6","7","8"].includes(String(ds.id)));
+    storage.set(STORAGE_KEYS.DESIGNATIONS, realDesigs);
+
+    // Sync official HR declared holidays if not already populated with 2026-2027 list
+    const existingHols = storage.get<any[]>(STORAGE_KEYS.HOLIDAYS, []);
+    const hasGudiPadwa = existingHols.some((h: any) => h && h.name && h.name.includes("Gudi Padwa"));
+    if (!hasGudiPadwa || existingHols.length < 15) {
+      storage.set(STORAGE_KEYS.HOLIDAYS, initialHolidays);
+    }
+  };
+
+  purgeMockData();
+
   if (!isInitialized || forceReset) {
     storage.set(STORAGE_KEYS.COMPANY, initialCompany);
     storage.set(STORAGE_KEYS.USER, DEFAULT_USER);
-    storage.set(STORAGE_KEYS.EMPLOYEES, initialEmployees);
-    storage.set(STORAGE_KEYS.DEPARTMENTS, initialDepartments);
-    storage.set(STORAGE_KEYS.DESIGNATIONS, initialDesignations);
-    storage.set(STORAGE_KEYS.BRANCHES, initialBranches);
+    // Real PostgreSQL backend data only
+    storage.set(STORAGE_KEYS.EMPLOYEES, []);
+    storage.set(STORAGE_KEYS.DEPARTMENTS, []);
+    storage.set(STORAGE_KEYS.DESIGNATIONS, []);
+    storage.set(STORAGE_KEYS.BRANCHES, []);
     storage.set(STORAGE_KEYS.ATTENDANCE, initialAttendanceRecords);
     storage.set(STORAGE_KEYS.REGULARIZATIONS, initialRegularizations);
     storage.set(STORAGE_KEYS.LEAVE_TYPES, initialLeaveTypes);
@@ -66,7 +103,6 @@ export function initializeHrmsStorage(forceReset = false) {
     storage.set(STORAGE_KEYS.GOALS, initialGoals);
     storage.set(STORAGE_KEYS.APPRAISALS, initialAppraisals);
     storage.set(STORAGE_KEYS.INITIALIZED, true);
-    console.log("✅ GA-HRMS LocalStorage successfully initialized with enterprise demo dataset.");
   } else {
     // Migration guard: ensure new modules exist and have demo data if empty or missing
     const checkAndSeed = (key: string, seed: any[]) => {

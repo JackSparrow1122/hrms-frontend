@@ -16,8 +16,13 @@ import { Select } from "../../components/ui/Select";
 import { Badge } from "../../components/ui/Badge";
 import { formatDate } from "../../lib/utils";
 
+import { useAuth } from "../../lib/authContext";
+
 export function DocumentsPage() {
   const { documents, employees, uploadDocument } = useHrms();
+  const { user } = useAuth();
+  const isHrOrAdmin = user?.role === "HR_ADMIN" || user?.role === "TENANT_ADMIN" || user?.role === "SUPER_ADMIN";
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -31,6 +36,10 @@ export function DocumentsPage() {
   const categories = ["ALL", "IDENTITY", "ACADEMIC", "EXPERIENCE", "COMPANY_POLICY"];
 
   const filteredDocs = documents.filter((doc) => {
+    // If not HR Admin or Super Admin, only view employee's own documents or company policies
+    if (!isHrOrAdmin && user?.employeeId && String(doc.employeeId) !== String(user.employeeId) && doc.category !== "COMPANY_POLICY") {
+      return false;
+    }
     const matchesSearch =
       searchQuery === "" ||
       doc.title.toLowerCase().includes(searchQuery.toLowerCase());

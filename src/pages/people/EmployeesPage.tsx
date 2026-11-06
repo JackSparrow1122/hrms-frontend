@@ -17,9 +17,12 @@ import {
   UserCheck,
   UserX,
   Building2,
+  MapPin,
+  ShieldCheck,
   X,
 } from "lucide-react";
 import { useHrms } from "../../lib/hrmsContext";
+import { useAuth } from "../../lib/authContext";
 import { Employee, EmploymentStatus } from "../../types/hrms";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
@@ -32,14 +35,100 @@ export interface EmployeesPageProps {
 }
 
 export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
-  const { employees, departments, designations, branches, deleteEmployee } = useHrms();
+  const {
+    employees,
+    departments,
+    designations,
+    branches,
+    company,
+    allCompanies,
+    activeCompanyId,
+    switchActiveCompany,
+    deleteEmployee,
+    syncBackendData,
+  } = useHrms();
+  const { user } = useAuth();
   const navigate = useNavigate();
+
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const isTenantAdmin = user?.role === "TENANT_ADMIN" || !!user?.isTenantAdmin;
+  const isBranchAdmin = user?.scopeType === "BRANCH" || (user?.role === "HR_ADMIN" && !isTenantAdmin && !isSuperAdmin);
+  const isManager = user?.role === "MANAGER";
+  const isTeamLead = user?.role === "TEAM_LEAD";
+  const isSupervisor = isManager || isTeamLead;
+
+  const assignedBranchId = user?.scopeBranchId ? String(user.scopeBranchId) : user?.branchId || "";
+  const currentBranch = branches.find((b) => b.id === assignedBranchId);
+
+  const canAddEmployee = isSuperAdmin || isTenantAdmin || isBranchAdmin;
+  const canDelete = isSuperAdmin || user?.role === "HR_ADMIN" || isTenantAdmin;
+
+  const currentUserId = user?.id ? String(user.id) : "";
+  const currentEmpId = user?.employeeId ? String(user.employeeId) : "";
+  const currentEmpEmail = user?.email?.toLowerCase() || "";
+
+  // Identify supervisor's own employee record
+  const selfEmployee = useMemo(() => {
+    return employees.find(
+      (e) =>
+        (currentEmpId && e.id === currentEmpId) ||
+        (currentEmpEmail && e.email.toLowerCase() === currentEmpEmail) ||
+        (currentUserId && e.id === currentUserId)
+    );
+  }, [employees, currentEmpId, currentEmpEmail, currentUserId]);
+
+  const effectiveSupervisorEmpId = selfEmployee?.id || currentEmpId || currentUserId;
+
+  // Hierarchical scoping: strictly find all employees below this user in reporting tree
+  const subordinateIds = useMemo(() => {
+    if (!isSupervisor) return null;
+    const directSet = new Set<string>();
+
+    employees.forEach((e) => {
+      if (
+        (effectiveSupervisorEmpId && String(e.managerId) === String(effectiveSupervisorEmpId)) ||
+        (currentUserId && String(e.managerId) === String(currentUserId)) ||
+        (currentEmpId && String(e.managerId) === String(currentEmpId))
+      ) {
+        directSet.add(String(e.id));
+      }
+    });
+
+    if (isManager) {
+      // Recursive expansion for Manager to also view staff reporting to their Team Leads
+      let added = true;
+      while (added) {
+        added = false;
+        employees.forEach((e) => {
+          if (e.managerId && directSet.has(String(e.managerId)) && !directSet.has(String(e.id))) {
+            directSet.add(String(e.id));
+            added = true;
+          }
+        });
+      }
+    }
+
+    return directSet;
+  }, [isSupervisor, isManager, employees, effectiveSupervisorEmpId, currentUserId, currentEmpId]);
+
+  React.useEffect(() => {
+    syncBackendData();
+  }, [syncBackendData]);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDept, setSelectedDept] = useState("ALL");
-  const [selectedBranch, setSelectedBranch] = useState("ALL");
+  const [selectedBranch, setSelectedBranch] = useState(() => {
+    if (isBranchAdmin && assignedBranchId) return assignedBranchId;
+    return "ALL";
+  });
   const [selectedStatus, setSelectedStatus] = useState("ALL");
+
+  React.useEffect(() => {
+    if (isBranchAdmin && assignedBranchId) {
+      setSelectedBranch(assignedBranchId);
+    }
+  }, [isBranchAdmin, assignedBranchId]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,17 +139,49 @@ export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
 
   // Quick Stats
   const stats = useMemo(() => {
-    const total = employees.length;
-    const active = employees.filter((e) => e.status === "ACTIVE").length;
-    const probation = employees.filter((e) => e.status === "PROBATION").length;
-    const notice = employees.filter((e) => e.status === "NOTICE_PERIOD").length;
-    const deptsCount = departments.length;
+    let sourceEmployees = employees;
+    if (isSupervisor && subordinateIds) {
+      sourceEmployees = employees.filter((e) => subordinateIds.has(String(e.id)));
+    } else if (isBranchAdmin && assignedBranchId) {
+      sourceEmployees = employees.filter((e) => String(e.branchId) === String(assignedBranchId));
+    } else if (selectedBranch !== "ALL") {
+      sourceEmployees = employees.filter((e) => String(e.branchId) === String(selectedBranch));
+    }
+
+    const total = sourceEmployees.length;
+    const active = sourceEmployees.filter((e) => e.status === "ACTIVE").length;
+    const probation = sourceEmployees.filter((e) => e.status === "PROBATION").length;
+    const notice = sourceEmployees.filter((e) => e.status === "NOTICE_PERIOD").length;
+
+    const deptIdsInScope = new Set(sourceEmployees.map((e) => e.departmentId).filter(Boolean));
+    const deptsCount = isSupervisor
+      ? deptIdsInScope.size
+      : (isBranchAdmin && assignedBranchId
+          ? departments.filter((d) => !d.branchId || String(d.branchId) === String(assignedBranchId)).length
+          : (selectedBranch !== "ALL"
+              ? departments.filter((d) => !d.branchId || String(d.branchId) === String(selectedBranch)).length
+              : departments.length));
+
     return { total, active, probation, notice, deptsCount };
-  }, [employees, departments]);
+  }, [employees, departments, isSupervisor, subordinateIds, isBranchAdmin, assignedBranchId, selectedBranch]);
 
   // Filtered employees
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
+      // 1. Manager / Team Lead: strictly unse jo niche he sirf unhika data
+      if (isSupervisor && subordinateIds) {
+        if (!subordinateIds.has(String(emp.id))) {
+          return false;
+        }
+      }
+
+      // 2. Branch HR Admin: strictly enforce branchId
+      if (isBranchAdmin && assignedBranchId) {
+        if (String(emp.branchId) !== String(assignedBranchId)) {
+          return false;
+        }
+      }
+
       const matchesSearch =
         searchQuery === "" ||
         `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -68,12 +189,12 @@ export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
         emp.email.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesDept = selectedDept === "ALL" || emp.departmentId === selectedDept;
-      const matchesBranch = selectedBranch === "ALL" || emp.branchId === selectedBranch;
+      const matchesBranch = selectedBranch === "ALL" || String(emp.branchId) === String(selectedBranch);
       const matchesStatus = selectedStatus === "ALL" || emp.status === selectedStatus;
 
       return matchesSearch && matchesDept && matchesBranch && matchesStatus;
     });
-  }, [employees, searchQuery, selectedDept, selectedBranch, selectedStatus]);
+  }, [employees, searchQuery, selectedDept, selectedBranch, selectedStatus, isSupervisor, subordinateIds, isBranchAdmin, assignedBranchId]);
 
   // Paginated records
   const totalPages = Math.ceil(filteredEmployees.length / pageSize) || 1;
@@ -152,10 +273,14 @@ export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-950 tracking-tight">
-            Employee Directory
+            {isManager ? "Team Hierarchy Directory" : isTeamLead ? "Direct Team Members" : "Employee Directory"}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Manage your {employees.length} organization members, profiles, statutory identities, and compensation records.
+            {isSupervisor
+              ? `Showing ${stats.total} subordinates reporting directly or indirectly under your leadership.`
+              : isBranchAdmin
+              ? `Manage your ${stats.total} branch employees, profiles, statutory identities, and compensation records.`
+              : `Manage your ${employees.length} organization members, profiles, statutory identities, and compensation records.`}
           </p>
         </div>
 
@@ -169,27 +294,182 @@ export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
             Export CSV
           </Button>
 
-          <Button
-            onClick={() => alert("Simulated: Bulk import XLSX/CSV modal.")}
-            variant="outline"
-            size="md"
-            leftIcon={<Upload className="w-4 h-4 text-gray-500" />}
-          >
-            Import
-          </Button>
+          {canAddEmployee && (
+            <>
+              <Button
+                onClick={() => alert("Simulated: Bulk import XLSX/CSV modal.")}
+                variant="outline"
+                size="md"
+                leftIcon={<Upload className="w-4 h-4 text-gray-500" />}
+              >
+                Import
+              </Button>
 
-          {onOpenAddEmployee && (
-            <Button
-              onClick={onOpenAddEmployee}
-              variant="primary"
-              size="md"
-              leftIcon={<Plus className="w-4 h-4" />}
-            >
-              Add Employee
-            </Button>
+              {onOpenAddEmployee && (
+                <Button
+                  onClick={onOpenAddEmployee}
+                  variant="primary"
+                  size="md"
+                  leftIcon={<Plus className="w-4 h-4" />}
+                >
+                  Add Employee
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
+
+      {/* Role-tailored Scope Context Banners */}
+      {isManager && (
+        <div className="bg-gradient-to-r from-purple-50/90 via-violet-50/80 to-purple-50/90 border border-purple-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-purple-800">Manager Team Directory</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-600 text-white">Hierarchical Subordinates Only</span>
+              </div>
+              <h3 className="text-base font-bold text-gray-950 mt-0.5">
+                Reporting Hierarchy Subordinates
+              </h3>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Logged in as Manager: <strong className="text-gray-900">{user?.name}</strong>. Only Team Leads and employees who report under your hierarchy are visible.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-purple-200 text-purple-900 font-semibold text-xs shadow-2xs">
+              <Users className="w-3.5 h-3.5 text-purple-600" />
+              {stats.total} Team Members
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isTeamLead && (
+        <div className="bg-gradient-to-r from-amber-50/90 via-orange-50/80 to-amber-50/90 border border-amber-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-amber-800">Team Lead Workspace</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-600 text-white">Direct Reportees Only</span>
+              </div>
+              <h3 className="text-base font-bold text-gray-950 mt-0.5">
+                Direct Team Members
+              </h3>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Logged in as Team Lead: <strong className="text-gray-900">{user?.name}</strong>. Only employees who report directly to you are visible.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-amber-200 text-amber-900 font-semibold text-xs shadow-2xs">
+              <Users className="w-3.5 h-3.5 text-amber-600" />
+              {stats.total} Direct Reportees
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isBranchAdmin && (
+        <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-blue-50/90 border border-blue-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-blue-800">Branch Operations Workspace</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">Strict Branch Isolation</span>
+              </div>
+              <h3 className="text-base font-bold text-gray-950 mt-0.5">
+                {currentBranch?.name || user?.branchName || "Assigned Branch Campus"}
+              </h3>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Designated HR Admin: <strong className="text-gray-900">{user?.name}</strong> ({user?.email}) • All directory records, departments, and designations are strictly isolated to this branch.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-blue-200 text-blue-900 font-semibold text-xs shadow-2xs">
+              <MapPin className="w-3.5 h-3.5 text-blue-600" />
+              {currentBranch?.city || "Local Branch Location"}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isTenantAdmin && (
+        <div className="bg-gradient-to-r from-emerald-50/90 via-teal-50/80 to-emerald-50/90 border border-emerald-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-emerald-800">Organization Head HR Governance</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white">{company.name}</span>
+              </div>
+              <h3 className="text-base font-bold text-gray-950 mt-0.5">
+                Multi-Branch Organization Oversight
+              </h3>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Company Head HR has full oversight across all branches. Use the Branch filter below to view workforce assigned to specific Branch HR Admins.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-emerald-900 font-semibold text-xs shadow-2xs">
+              <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+              {branches.length} Registered Branches
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isSuperAdmin && (
+        <div className="bg-gradient-to-r from-purple-50/90 via-indigo-50/80 to-purple-50/90 border border-purple-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-purple-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-purple-800">Super Admin Global Platform Governance</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-700 text-white">Platform Scope</span>
+              </div>
+              <h3 className="text-base font-bold text-gray-950 mt-0.5">
+                Cross-Tenant Ecosystem Workforce Directory
+              </h3>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Audit and inspect complete organization rosters and branch structures across the platform.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+            <div className="flex items-center gap-2 bg-white border border-purple-200 px-3 py-1.5 rounded-xl shadow-2xs">
+              <span className="text-xs font-semibold text-gray-600">Active Org:</span>
+              <select
+                value={activeCompanyId}
+                onChange={(e) => switchActiveCompany(Number(e.target.value))}
+                className="text-xs font-bold text-purple-950 bg-transparent border-none focus:outline-none cursor-pointer"
+              >
+                {allCompanies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.legalName || c.tradeName} (ID: #{c.id})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Minimalist Executive KPI Ribbon */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5">
@@ -285,22 +565,51 @@ export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
             ))}
           </select>
 
-          {/* Branch */}
-          <select
-            value={selectedBranch}
-            onChange={(e) => {
-              setSelectedBranch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="h-9 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-gray-950 focus:ring-2 focus:ring-gray-950/5 transition-all"
-          >
-            <option value="ALL">All Branches</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+          {/* Branch Scoping & Filtering */}
+          {isSupervisor ? (
+            <div className="flex items-center gap-1.5 h-9 px-3 bg-purple-50 border border-purple-200 rounded-lg text-xs font-semibold text-purple-900 shadow-2xs">
+              <Users className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <span>{isManager ? "Managed Team Reports" : "Direct Reportees"}</span>
+            </div>
+          ) : isBranchAdmin ? (
+            <div className="flex items-center gap-1.5 h-9 px-3 bg-blue-50 border border-blue-200 rounded-lg text-xs font-semibold text-blue-900 shadow-2xs">
+              <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span>{currentBranch?.name || user?.branchName || "Assigned Branch"} (Your Branch)</span>
+            </div>
+          ) : isTenantAdmin ? (
+            <select
+              value={selectedBranch}
+              onChange={(e) => {
+                setSelectedBranch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 px-2.5 text-xs bg-emerald-50/70 border border-emerald-300 rounded-lg text-emerald-950 font-medium focus:outline-none focus:border-emerald-600 transition-all max-w-[300px]"
+              title="Filter workforce by Branch & Branch HR Admin"
+            >
+              <option value="ALL">🏢 All Branches & HR Admins (Consolidated View)</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  📍 {b.name} — HR Admin: {b.hrAdminName ? `${b.hrAdminName} (${b.hrAdminEmail || ""})` : "Unassigned"}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select
+              value={selectedBranch}
+              onChange={(e) => {
+                setSelectedBranch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 px-2.5 text-xs bg-white border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-gray-950 focus:ring-2 focus:ring-gray-950/5 transition-all"
+            >
+              <option value="ALL">All Branches of Organization</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name} ({b.city || ""})
+                </option>
+              ))}
+            </select>
+          )}
 
           {/* Status */}
           <select
@@ -350,7 +659,19 @@ export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
               {paginatedEmployees.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-14 text-center text-gray-400 text-sm">
-                    No employees matching the search and filter criteria.
+                    {isSupervisor ? (
+                      <div className="max-w-md mx-auto space-y-2">
+                        <Users className="w-8 h-8 text-purple-400 mx-auto" />
+                        <p className="font-semibold text-gray-700">No reportees or team members found</p>
+                        <p className="text-xs text-gray-500">
+                          {isManager
+                            ? "You are logged in as Manager. Only team leads and employees reporting under your hierarchy will appear here."
+                            : "You are logged in as Team Lead. Only team members directly reporting to you will appear here."}
+                        </p>
+                      </div>
+                    ) : (
+                      "No employees matching the search and filter criteria."
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -400,8 +721,17 @@ export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
                       </td>
 
                       {/* Branch */}
-                      <td className="py-3 px-4 text-gray-600 text-xs">
-                        {branch?.city || "Pune"}
+                      <td className="py-3 px-4 text-gray-700 text-xs font-medium">
+                        {branch ? (
+                          <div className="flex flex-col">
+                            <span className="text-gray-900 font-semibold">{branch.name}</span>
+                            <span className="text-[11px] text-gray-500">{branch.city}</span>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            🏢 Corporate HQ
+                          </span>
+                        )}
                       </td>
 
                       {/* Joining Date */}
@@ -439,13 +769,15 @@ export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
                           >
                             <CalendarCheck2 className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => setEmployeeToDelete(emp)}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
-                            title="Delete Employee"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canDelete && (
+                            <button
+                              onClick={() => setEmployeeToDelete(emp)}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                              title="Delete Employee / Manager"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -506,9 +838,9 @@ export function EmployeesPage({ onOpenAddEmployee }: EmployeesPageProps) {
       <ConfirmDialog
         isOpen={!!employeeToDelete}
         onClose={() => setEmployeeToDelete(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (employeeToDelete) {
-            deleteEmployee(employeeToDelete.id);
+            await deleteEmployee(employeeToDelete.employeeCode || employeeToDelete.id);
             setEmployeeToDelete(null);
           }
         }}

@@ -55,19 +55,65 @@ export function formatDate(dateString: string | undefined): string {
 
 /**
  * Time formatting (e.g. 09:30 AM)
+ * Supports ISO date strings ("2026-10-20T04:05:03Z"), full datetime strings, and simple time strings ("09:30", "18:45:00")
  */
 export function formatTime(timeStr: string | null | undefined): string {
   if (!timeStr) return "--:--";
   try {
-    if (timeStr.includes(":")) {
-      const [h, m] = timeStr.split(":").map(Number);
-      const period = h >= 12 ? "PM" : "AM";
-      const displayHours = h % 12 || 12;
-      return `${String(displayHours).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`;
+    const trimmed = String(timeStr).trim();
+
+    // Check if ISO timestamp or full date string (e.g., contains 'T' or looks like 'YYYY-MM-DD ...')
+    if (trimmed.includes("T") || (trimmed.includes("-") && trimmed.includes(":"))) {
+      const date = new Date(trimmed);
+      if (!isNaN(date.getTime())) {
+        return new Intl.DateTimeFormat("en-IN", {
+          timeZone: "Asia/Kolkata",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }).format(date).toUpperCase();
+      }
     }
-    return timeStr;
+
+    // If it's a simple HH:mm or HH:mm:ss string without date
+    if (trimmed.includes(":")) {
+      const parts = trimmed.split(":");
+      const h = Number(parts[0]);
+      const m = Number(parts[1]);
+      if (!isNaN(h) && !isNaN(m)) {
+        const period = h >= 12 ? "PM" : "AM";
+        const displayHours = h % 12 || 12;
+        return `${String(displayHours).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`;
+      }
+    }
+    return trimmed;
   } catch {
     return timeStr;
+  }
+}
+
+/**
+ * Format Time including seconds (e.g. 10:03:16 AM)
+ */
+export function formatTimeWithSeconds(timeStr: string | null | undefined): string {
+  if (!timeStr) return "--:--:--";
+  try {
+    const trimmed = String(timeStr).trim();
+    if (trimmed.includes("T") || (trimmed.includes("-") && trimmed.includes(":"))) {
+      const date = new Date(trimmed);
+      if (!isNaN(date.getTime())) {
+        return new Intl.DateTimeFormat("en-IN", {
+          timeZone: "Asia/Kolkata",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }).format(date).toUpperCase();
+      }
+    }
+    return formatTime(timeStr);
+  } catch {
+    return timeStr || "--:--:--";
   }
 }
 
@@ -86,7 +132,26 @@ export function calculateHours(inTime: string | null, outTime: string | null): n
     return 0;
   }
 }
+/**
+ * Returns today's date in YYYY-MM-DD format, strictly in IST (Asia/Kolkata).
+ * Safe for backend API params where timezone must be consistent.
+ */
+export function getTodayIst(): string {
+  return new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata",
+  });
+}
 
+/**
+ * Returns today's date in YYYY-MM-DD format offset by `days` (negative = past),
+ * strictly in IST (Asia/Kolkata).
+ * Example: getDateIst(-1) = yesterday in IST.
+ */
+export function getDateIst(daysOffset: number = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  return d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
 /**
  * Calculate statutory Indian payroll components based on monthly CTC
  */
@@ -101,13 +166,13 @@ export function calculateSalaryComponents(monthlyCtc: number) {
 
   // EPF: 12% of basic (capped at ₹15,000 ceiling standard = ₹1,800, or uncapped for high earners)
   const pfEmployee = Math.min(1800, Math.round(basic * 0.12));
-  
+
   // ESIC: 0.75% of gross if gross <= 21,000; 0 otherwise
   const esicEmployee = grossEarnings <= 21000 ? Math.round(grossEarnings * 0.0075) : 0;
-  
+
   // Professional Tax: standard Maharashtra slab (₹200 / month, ₹300 in Feb)
   const professionalTax = 200;
-  
+
   // Estimated monthly TDS (approximate tax slab estimation)
   const annualGross = grossEarnings * 12;
   let estimatedAnnualTax = 0;

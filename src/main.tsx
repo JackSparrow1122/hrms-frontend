@@ -1,3 +1,9 @@
+// Silence console outputs as requested
+console.log = () => {};
+console.info = () => {};
+console.warn = () => {};
+console.debug = () => {};
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";

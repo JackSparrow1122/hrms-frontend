@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Users,
   Building2,
+  GitBranch,
   Briefcase,
   Network,
   FileText,
@@ -64,27 +65,52 @@ export function Sidebar({
   const { user } = useAuth();
   const { leaveRequests, regularizations, notifications, company } = useHrms();
 
-  const pendingLeavesCount = leaveRequests.filter((l) => l.status === "PENDING").length;
+  const role = user?.role || "SUPER_ADMIN";
+
+  const pendingLeavesCount = React.useMemo(() => {
+    if (role === "EMPLOYEE") {
+      const currentEmpId = user?.employeeId ? String(user.employeeId) : "";
+      const currentEmpCode = user?.employeeCode ? user.employeeCode.toUpperCase() : "";
+      return leaveRequests.filter((l) => {
+        if (l.status !== "PENDING") return false;
+        return (
+          (currentEmpId && String(l.employeeId) === currentEmpId) ||
+          (currentEmpCode && (l as any).employeeCode?.toUpperCase() === currentEmpCode)
+        );
+      }).length;
+    }
+    return leaveRequests.filter((l) => l.status === "PENDING").length;
+  }, [leaveRequests, role, user]);
+
   const pendingRegsCount = regularizations.filter((r) => r.status === "PENDING").length;
   const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
-
-  const role = user?.role || "SUPER_ADMIN";
 
   const navigationGroups: NavGroup[] = [
     {
       group: "Overview",
       items: [
         { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+        {
+          label: "My Profile",
+          path: `/profile`,
+          icon: Users,
+        },
       ],
     },
     {
       group: "People",
       items: [
-        { label: "Employees", path: "/people/employees", icon: Users, roles: ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"] },
-        { label: "Departments", path: "/people/departments", icon: Building2, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
-        { label: "Designations", path: "/people/designations", icon: Briefcase, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
-        { label: "Organization", path: "/people/organization", icon: Network, roles: ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"] },
-        { label: "Documents", path: "/people/documents", icon: FileText, roles: ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"] },
+        {
+          label: "Employees",
+          path: "/people/employees",
+          icon: Users,
+          roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"],
+        },
+        { label: "Branches", path: "/people/branches", icon: GitBranch, roles: ["SUPER_ADMIN", "TENANT_ADMIN"] },
+        { label: "Departments", path: "/people/departments", icon: Building2, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
+        { label: "Designations", path: "/people/designations", icon: Briefcase, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
+        { label: "Organization", path: "/people/organization", icon: Network, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
+        { label: "Documents", path: "/people/documents", icon: FileText, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD", "EMPLOYEE"] },
       ],
     },
     {
@@ -95,62 +121,74 @@ export function Sidebar({
           label: "Regularization",
           path: "/time/regularization",
           icon: ClockAlert,
-          roles: ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
+          roles: ["TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD"],
           badge: pendingRegsCount > 0 ? pendingRegsCount : undefined,
         },
-        { label: "Shifts", path: "/time/shifts", icon: CalendarRange, roles: ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"] },
+        { label: "Shifts", path: "/time/shifts", icon: CalendarRange, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
         { label: "Holidays", path: "/time/holidays", icon: CalendarDays },
       ],
     },
     {
       group: "Leave",
       items: [
-        { label: "Leave Overview", path: "/leave/overview", icon: CalendarCheck2 },
         {
-          label: "Leave Requests",
+          label: role === "EMPLOYEE" ? "My Leaves" : "Leave Requests",
           path: "/leave/requests",
           icon: FileCheck,
-          roles: ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
+          roles: ["TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD", "EMPLOYEE"],
           badge: pendingLeavesCount > 0 ? pendingLeavesCount : undefined,
         },
-        { label: "Leave Policies", path: "/leave/policies", icon: ShieldCheck, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
+        {
+          label: "Leave Overview",
+          path: "/leave/overview",
+          icon: CalendarCheck2,
+          roles: ["TENANT_ADMIN", "HR_ADMIN", "MANAGER", "TEAM_LEAD", "EMPLOYEE"],
+        },
+        {
+          label: "Leave Policies",
+          path: "/leave/policies",
+          icon: ShieldCheck,
+          roles: ["TENANT_ADMIN", "HR_ADMIN"],
+        },
       ],
     },
     {
       group: "Payroll",
       items: [
-        { label: "Payroll Dashboard", path: "/payroll/dashboard", icon: WalletCards, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
-        { label: "Salary Structures", path: "/payroll/salary-structures", icon: Coins, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
-        { label: "Payroll Runs", path: "/payroll/runs", icon: Receipt, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
-        { label: "Payslips", path: "/payroll/payslips", icon: FileSpreadsheet },
+        { label: "Payroll Dashboard", path: "/payroll/dashboard", icon: WalletCards, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "PAYROLL_ADMIN"] },
+        { label: "Salary Structures", path: "/payroll/salary-structures", icon: Coins, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "PAYROLL_ADMIN"] },
+        { label: "Payroll Runs", path: "/payroll/runs", icon: Receipt, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "PAYROLL_ADMIN"] },
+        { label: "Payslips", path: "/payroll/payslips", icon: FileSpreadsheet, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN", "PAYROLL_ADMIN"] },
       ],
     },
     {
       group: "Reports",
       items: [
-        { label: "Reports Center", path: "/reports", icon: BarChart3, roles: ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"] },
+        { label: "Reports Center", path: "/reports", icon: BarChart3, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
       ],
     },
     {
       group: "Administration",
       items: [
-        { label: "Users & Roles", path: "/admin/users-roles", icon: UserCheck, roles: ["SUPER_ADMIN"] },
-        { label: "Company Settings", path: "/admin/settings", icon: Settings, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
+        { label: "Tenant Organizations", path: "/admin/organizations", icon: Building2, roles: ["SUPER_ADMIN"] },
+        { label: "Users & Roles", path: "/admin/users-roles", icon: UserCheck, roles: ["SUPER_ADMIN", "TENANT_ADMIN"] },
+        { label: "Company Settings", path: "/admin/settings", icon: Settings, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
         {
           label: "Notifications",
           path: "/admin/notifications",
           icon: Bell,
+          roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"],
           badge: unreadNotifsCount > 0 ? unreadNotifsCount : undefined,
         },
-        { label: "Audit Logs", path: "/admin/audit-logs", icon: ScrollText, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
+        { label: "Audit Logs", path: "/admin/audit-logs", icon: ScrollText, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
       ],
     },
     {
       group: "More Modules",
       items: [
-        { label: "Recruitment & ATS", path: "/recruitment", icon: Briefcase, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
-        { label: "Asset & IT", path: "/assets", icon: Laptop, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
-        { label: "Performance & OKRs", path: "/performance", icon: Target, roles: ["SUPER_ADMIN", "HR_ADMIN"] },
+        { label: "Recruitment & ATS", path: "/recruitment", icon: Briefcase, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
+        { label: "Asset & IT", path: "/assets", icon: Laptop, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
+        { label: "Performance & OKRs", path: "/performance", icon: Target, roles: ["SUPER_ADMIN", "TENANT_ADMIN", "HR_ADMIN"] },
       ],
     },
   ];

@@ -1,14 +1,31 @@
-export type UserRole = 'SUPER_ADMIN' | 'HR_ADMIN' | 'MANAGER' | 'EMPLOYEE';
+export type UserRole =
+  | 'SUPER_ADMIN'
+  | 'TENANT_ADMIN'
+  | 'HR_ADMIN'
+  | 'MANAGER'
+  | 'TEAM_LEAD'
+  | 'EMPLOYEE'
+  | 'PAYROLL_ADMIN';
 
 export interface CurrentUser {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  roles?: string[];
+  fullName?: string;
+  employeeCode?: string;
   avatar: string;
   employeeId?: string;
   designation?: string;
   department?: string;
+  companyId?: number;
+  companyName?: string;
+  scopeType?: 'PLATFORM' | 'ORGANIZATION' | 'BRANCH' | 'DEPARTMENT';
+  scopeBranchId?: number;
+  branchId?: string;
+  branchName?: string;
+  isTenantAdmin?: boolean;
 }
 
 export interface Company {
@@ -33,6 +50,9 @@ export interface Branch {
   state: string;
   address: string;
   headCount: number;
+  hrAdminId?: number;
+  hrAdminName?: string;
+  hrAdminEmail?: string;
 }
 
 export interface Department {
@@ -44,16 +64,22 @@ export interface Department {
   budget: number;
   openPositions: number;
   description: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface Designation {
   id: string;
   title: string;
   code: string;
-  departmentId: string;
-  level: string;
-  minCtc: number;
-  maxCtc: number;
+  departmentId?: string;
+  departmentName?: string;
+  branchId?: string;
+  branchName?: string;
+  level?: string;
+  minCtc?: number;
+  maxCtc?: number;
+  active?: boolean;
 }
 
 export type EmploymentStatus = 'ACTIVE' | 'PROBATION' | 'NOTICE_PERIOD' | 'RESIGNED' | 'TERMINATED';
@@ -72,14 +98,20 @@ export interface Employee {
   avatar: string;
   
   // Employment
-  departmentId: string;
-  designationId: string;
-  branchId: string;
+  departmentId?: string;
+  department?: string;
+  departmentName?: string;
+  designationId?: string;
+  designation?: string;
+  designationName?: string;
+  branchId?: string;
+  branchName?: string;
+  companyId?: string | number;
   managerId?: string;
   joiningDate: string;
   employmentType: EmploymentType;
   status: EmploymentStatus;
-  shiftId: string;
+  shiftId?: string;
   
   // Statutory (Indian Compliance)
   pan: string;
